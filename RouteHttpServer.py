@@ -1,25 +1,24 @@
 import http.server
-import socketserver
-from urllib import parse
-from functools import partial
-import os
 import io
-import re
-from routeServer import RouteServer, computeMissingKml, LatLonsToGpx, TilesToKml
 import json
-import zlib
-import struct
-from datetime import datetime
+import os
 import random
+import re
+import socketserver
 import string
-from pprint import pprint
+import struct
+import zlib
+from datetime import datetime
+from functools import partial
 from pathlib import Path
+from pprint import pprint
+from urllib import parse
 
+from routeServer import RouteServer, computeMissingKml, LatLonsToGpx, TilesToKml
 
 # TODO [Improvement] Add CANCEL to merge
 # TODO [Improvement] Add Elevation
 # TODO [Improvement] Add option to avoid turn around (Turn around price ?)
-# TODO [Improvement] Direct download trace
 # TODO [Improvement] Add description to buttons
 # TODO [Improvement] Add line command arguments for port
 # TODO [Improvement] Add installation for python package

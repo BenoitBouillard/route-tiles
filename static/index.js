@@ -384,7 +384,10 @@ $(document).ready(function(){
                 if (data.status!="OK") {
                     $("p#gpxMessage").text(data.message);
                 }
-               $("a#gpxDownload").attr("href", data.path);
+                else {
+                   $("a#gpxDownload").attr("href", data.path);
+                   $("a#gpxDownload")[0].click();
+                }
             }
         });
     });
