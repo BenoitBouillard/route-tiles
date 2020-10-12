@@ -45,8 +45,6 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
         self.session = None
         self.sessionId = None
-        # Create gpx folder is not exists for gpx export
-        Path(os.path.join(self.directory, 'gpx')).mkdir(exist_ok=True)
 
 
     def do_GET_request(self):
@@ -290,7 +288,8 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         return (None, "Unexpect Ends of data.")
         
     def Session(self, sessionId=None):
-        parsed_path = parse.urlparse(self.path)        
+
+        parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         if "sessionId" in qs:
             self.sessionId=qs["sessionId"][0]
@@ -302,8 +301,13 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             self.sessionId=generateRandom(8)
             sessionObject = SessionElement()
             sessionDict[self.sessionId] = sessionObject
-        return sessionObject     
-        
+        return sessionObject
+
+
+# Create gpx folder is not exists for gpx export
+Path(os.path.join(os.path.dirname(__file__), 'static', 'gpx')).mkdir(exist_ok=True)
+Path(os.path.join(os.path.dirname(__file__), 'debug')).mkdir(exist_ok=True)
+
 handler_class = partial(RouteHttpServer, directory=os.path.join(os.path.dirname(__file__), 'static'))
 
 with socketserver.TCPServer(("", PORT), handler_class) as httpd:
