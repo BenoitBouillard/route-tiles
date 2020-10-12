@@ -3,7 +3,7 @@
 
 from fastkml import kml, styles
 from tile import Tile, CoordDict, coordFromTile
-from pyroutelib3 import Router
+from pyroutelib3 import Datastore
 import os
 from pathlib import Path
 from mathutils import *
@@ -439,7 +439,7 @@ class RouteServer(object):
         if mode != self.mode:
             self.mode = mode
             self.stored_tiles = {}
-            self.router = Router(mode, cache_dir=os.path.join(Path.home(), '.tilescache'))
+            self.router = Datastore(mode, cache_dir=os.path.join(Path.home(), '.tilescache'))
         coordDict = CoordDict(self.router)
         startPoint = coordDict.get(*startLoc)
         endPoint = coordDict.get(*endLoc)
