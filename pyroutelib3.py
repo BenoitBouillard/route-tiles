@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Loading OSM data and doing routing with it
 # node_lat, node_lon = Router().data.rnodes[node_id][0], Router().data.rnodes[node_id][1]
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Copyright 2007, Oliver White
 # Modifications: Copyright 2017-2019, Mikolaj Kuranowski -
 # Based on https://github.com/gaulinmp/pyroutelib2
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # This file is part of pyroutelib3.
 #
 # pyroutelib3 is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with pyroutelib3. If not, see <http://www.gnu.org/licenses/>.
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Changelog:
 #  2007-11-04  OJW  Modified from pyroute.py
 #  2007-11-05  OJW  Multiple forms of transport
@@ -32,17 +32,12 @@
 #  2018-08-14  MK   Turn restrictions
 #  2018-08-18  MK   New data download function
 #  2019-09-15  MK   Allow for custom storage classes, instead of default dict
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 import os
-import re
-import sys
 import math
 import time
-import dateutil.parser
 import xml.etree.ElementTree as etree
 from warnings import warn
-from datetime import datetime
-from collections import OrderedDict
 from urllib.request import urlretrieve
 from mathutils import distance, retry
 
@@ -57,50 +52,60 @@ __version__ = "1.4"
 __maintainer__ = "Mikolaj Kuranowski"
 __email__ = "mkuranowski@gmail.com"
 
+
 def weightPrimaryRoadcycle(t):
     w = int(t.get("maxspeed", "80"))
-    if w <= 50 : return 1
-    if w <= 70 : return 0.75
-    if w <= 80 : return 0.5
+    if w <= 50:
+        return 1
+    if w <= 70:
+        return 0.75
+    if w <= 80:
+        return 0.5
     return 0.25
 
+
 def filterAsphalt(t):
-    if t.get("surface") in ['asphalt']: return 1
-    if t.get("footway") in ['crossing']: return 1
-    if t.get("crossing") in ['zebra']: return 1
+    if t.get("surface") in ['asphalt']:
+        return 1
+    if t.get("footway") in ['crossing']:
+        return 1
+    if t.get("crossing") in ['zebra']:
+        return 1
     return 0
-    
+
+
 TYPES = {
     "car": {
         "weights": {"motorway": 10, "trunk": 10, "primary": 2, "secondary": 1.5, "tertiary": 1,
-            "unclassified": 1, "residential": 0.7, "track": 0.5, "service": 0.5},
+                    "unclassified": 1, "residential": 0.7, "track": 0.5, "service": 0.5},
         "access": ["access", "vehicle", "motor_vehicle", "motorcar"]},
     "bus": {
         "weights": {"motorway": 10, "trunk": 10, "primary": 2, "secondary": 1.5, "tertiary": 1,
-            "unclassified": 1, "residential": 0.8, "track": 0.3, "service": 0.9},
+                    "unclassified": 1, "residential": 0.8, "track": 0.3, "service": 0.9},
         "access": ["access", "vehicle", "motor_vehicle", "psv", "bus"]},
     "roadcycle": {
         "weights": {"primary": weightPrimaryRoadcycle, "secondary": 1, "tertiary": 1,
-            "unclassified": 1, "residential": 1, "living_street": 1, "cycleway": 0.9, "footway": filterAsphalt, "path":filterAsphalt},
+                    "unclassified": 1, "residential": 1, "living_street": 1, "cycleway": 0.9, "footway": filterAsphalt,
+                    "path": filterAsphalt},
         "access": ["access", "vehicle", "bicycle"]},
     "cycle": {
         "weights": {"trunk": 0.05, "primary": weightPrimaryRoadcycle, "secondary": 0.9, "tertiary": 1,
-            "unclassified": 1, "cycleway": 2, "residential": 2.5, "living_street": 2, "track": 1,
-            "service": 1, "bridleway": 0.8, "footway": 0.8, "steps": 0.5, "path": 1},
+                    "unclassified": 1, "cycleway": 2, "residential": 2.5, "living_street": 2, "track": 1,
+                    "service": 1, "bridleway": 0.8, "footway": 0.8, "steps": 0.5, "path": 1},
         "access": ["access", "vehicle", "bicycle"]},
     "horse": {
-        "weights": {"primary": 0.05, "secondary": 0.15, "tertiary": 0.3, "unclassified": 1, \
-        "residential": 1, "track": 1.5, "service": 1, "bridleway": 5, "path": 1.5},
+        "weights": {"primary": 0.05, "secondary": 0.15, "tertiary": 0.3, "unclassified": 1,
+                    "residential": 1, "track": 1.5, "service": 1, "bridleway": 5, "path": 1.5},
         "access": ["access", "horse"]},
     "foot": {
         "weights": {"trunk": 0.3, "primary": 0.6, "secondary": 0.95, "tertiary": 1,
-            "unclassified": 1, "residential": 1, "living_street": 1, "track": 1, "service": 1,
-            "bridleway": 1, "footway": 1.2, "path": 1.2, "steps": 1.15},
+                    "unclassified": 1, "residential": 1, "living_street": 1, "track": 1, "service": 1,
+                    "bridleway": 1, "footway": 1.2, "path": 1.2, "steps": 1.15},
         "access": ["access", "foot"]},
     "trail": {
         "weights": {"trunk": 0.1, "primary": 0.3, "secondary": 0.6, "tertiary": 0.7,
-            "unclassified": 0.7, "residential": 0.8, "living_street": 0.8, "track": 0.9, "service": 0.8,
-            "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1},
+                    "unclassified": 0.7, "residential": 0.8, "living_street": 0.8, "track": 0.9, "service": 0.8,
+                    "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1},
         "access": ["access", "foot"]},
     "tram": {
         "weights": {"tram": 1, "light_rail": 1},
@@ -112,6 +117,7 @@ TYPES = {
 
 ZOOM_LEVEL = 15
 
+
 def _whichTile(lat, lon, zoom):
     """Determine in which tile the given lat, lon lays"""
     n = 2 ** zoom
@@ -119,17 +125,18 @@ def _whichTile(lat, lon, zoom):
     y = n * ((1 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2)
     return int(x), int(y), int(zoom)
 
+
 def _tileBoundary(x, y, z):
     """Return (left, bottom, right, top) of bbox of given tile"""
     n = 2 ** z
     mercToLat = lambda v: math.degrees(math.atan(math.sinh(v)))
-    top = mercToLat(math.pi * (1 - 2 * (y * (1/n))))
-    bottom = mercToLat(math.pi * (1 - 2 * ((y+1) * (1/n))))
-    left = x * (360/n) -180
-    right = left + (360/n)
+    top = mercToLat(math.pi * (1 - 2 * (y * (1 / n))))
+    bottom = mercToLat(math.pi * (1 - 2 * ((y + 1) * (1 / n))))
+    left = x * (360 / n) - 180
+    right = left + (360 / n)
     return left, bottom, right, top
 
-    
+
 @retry(Exception, tries=6, delay=30, backoff=2)
 def myurlretrieve(url, filename=None, reporthook=None, data=None):
     return urlretrieve(url, filename, reporthook, data)
@@ -139,23 +146,33 @@ def attributes(element):
     """Get OSM element atttributes and do some common type conversion"""
     result = {}
     for k, v in element.attrib.items():
-        if k == "uid": v = int(v)
-        elif k == "changeset": v = int(v)
-        elif k == "version": v = float(v)
-        elif k == "id": v = int(v)
-        elif k == "lat": v = float(v)
-        elif k == "lon": v = float(v)
-        elif k == "open": v = (v == "true")
-        elif k == "visible": v = (v == "true")
-        elif k == "ref": v = int(v)
-        elif k == "comments_count": v = int(v)
+        if k == "uid":
+            v = int(v)
+        elif k == "changeset":
+            v = int(v)
+        elif k == "version":
+            v = float(v)
+        elif k == "id":
+            v = int(v)
+        elif k == "lat":
+            v = float(v)
+        elif k == "lon":
+            v = float(v)
+        elif k == "open":
+            v = (v == "true")
+        elif k == "visible":
+            v = (v == "true")
+        elif k == "ref":
+            v = int(v)
+        elif k == "comments_count":
+            v = int(v)
         result[k] = v
     return result
 
 
 def equivalent(tag):
     """Simplifies a bunch of tags to nearly-equivalent ones"""
-    equivalent = { \
+    equivalent = {
         "motorway_link": "motorway",
         "trunk_link": "trunk",
         "primary_link": "primary",
@@ -170,6 +187,7 @@ def equivalent(tag):
 
 class Datastore:
     """Object for storing routing data with basic OSM parsing functionality"""
+
     def __init__(self, transport, localfile=False, expire_data=30, storage_class=dict, cache_dir="tilescache"):
         """Initialise an OSM-file parser"""
         # Routing data
@@ -182,7 +200,7 @@ class Datastore:
 
         # Info about OSM
         self.tiles = storage_class()
-        self.expire_data = 86400 * expire_data # expire_data is in days, we preform calculations in seconds
+        self.expire_data = 86400 * expire_data  # expire_data is in days, we preform calculations in seconds
         self.localFile = bool(localfile)
 
         # Parsing/Storage data
@@ -196,13 +214,14 @@ class Datastore:
             self.type = transport
 
         else:
-            self.transport = transport if transport not in ["cycle", "roadcycle"] else "bicycle" # Osm uses bicycle in tags
+            self.transport = transport if transport not in ["cycle",
+                                                            "roadcycle"] else "bicycle"  # Osm uses bicycle in tags
             self.type = TYPES[transport].copy()
 
         # Load local file if it was passed
         if self.localFile:
             self.loadOsm(localfile)
-            
+
     def clean(self):
         self.routing = self.storage_class()
 
@@ -218,8 +237,10 @@ class Datastore:
         # Priority is ascending in the access array
         for key in self.type["access"]:
             if key in tags:
-                if tags[key] in ["no", "private"]: allowed = False
-                else: allowed =  True
+                if tags[key] in ["no", "private"]:
+                    allowed = False
+                else:
+                    allowed = True
 
         return allowed
 
@@ -227,38 +248,40 @@ class Datastore:
         """Get node's lat lon"""
         return self.rnodes[node]
 
-    
     def getArea(self, lat, lon):
         """Download data in the vicinity of a lat/long"""
         # Don't download data if we loaded a custom OSM file
-        if self.localFile: return
+        if self.localFile:
+            return
 
         # Get info on tile in wich lat, lon lays
         x, y, z = _whichTile(lat, lon, ZOOM_LEVEL)
-        
+
         self.getTile(x, y, z)
-        
+
     def getAreaRect(self, lat1, lon1, lat2, lon2):
         """Download data in the vicinity of a lat/long"""
         # Don't download data if we loaded a custom OSM file
-        if self.localFile: return
+        if self.localFile:
+            return
 
         # Get info on tile in wich lat, lon lays
         x1, y1, z1 = _whichTile(lat1, lon1, ZOOM_LEVEL)
         x2, y2, z2 = _whichTile(lat2, lon2, ZOOM_LEVEL)
-        for x in range(min(x1,x2), max(x1,x2)+1):
-            for y in range(min(y1,y2), max(y1,y2)+1):
+        for x in range(min(x1, x2), max(x1, x2) + 1):
+            for y in range(min(y1, y2), max(y1, y2) + 1):
                 self.getTile(x, y, z1)
-        
+
     def getTile(self, x, y, z):
         tileId = "{0},{1}".format(x, y)
 
         # Don't redownload tiles
-        if tileId in self.tiles: return
+        if tileId in self.tiles:
+            return
 
         # Download tile data
         self.tiles[tileId] = True
-        directory = os.path.join(self.cache_dir, "{}".format(ZOOM_LEVEL), str(x), str(y))
+        directory = os.path.join(self.cache_dir, "{}".format(z), str(x), str(y))
         filename = os.path.join(directory, "data.osm")
 
         # Make sure directory to which we download .osm files exists
@@ -277,17 +300,20 @@ class Datastore:
 
         if downloadedSecondsAgo >= self.expire_data:
             print("Get tile {},{}".format(x, y))
-            left, bottom, right, top = _tileBoundary(x, y, ZOOM_LEVEL)
-            myurlretrieve("https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top), filename)
+            left, bottom, right, top = _tileBoundary(x, y, z)
+            myurlretrieve(
+                "https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top),
+                filename)
         try:
             print("load", filename)
             self.loadOsm(filename)
         except etree.ParseError:
             print("Recover tile {},{}".format(x, y))
             left, bottom, right, top = _tileBoundary(x, y, ZOOM_LEVEL)
-            myurlretrieve("https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top), filename)
+            myurlretrieve(
+                "https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top),
+                filename)
             self.loadOsm(filename)
-            
 
     def parseOsmFile(self, file):
         """Return nodes, ways and realations of given file
@@ -298,10 +324,12 @@ class Datastore:
         relations = self.storage_class()
 
         # Check if a file-like object was passed
-        if hasattr(file, "read"): fp = file
+        if hasattr(file, "read"):
+            fp = file
 
         # If not assume that "file" is a path to file
-        else: fp = open(os.fspath(file), "r", encoding="utf-8")
+        else:
+            fp = open(os.fspath(file), "r", encoding="utf-8")
 
         try:
             for event, elem in etree.iterparse(fp):
@@ -323,19 +351,20 @@ class Datastore:
 
         finally:
             # Close file if a path was passed
-            if not hasattr(file, "read"): fp.close()
+            if not hasattr(file, "read"):
+                fp.close()
 
         return nodes, ways, relations
 
     def loadOsm(self, file):
         """Load data from OSM file to self"""
         nodes, ways, relations = self.parseOsmFile(file)
-            
 
         for wayId, wayData in ways.items():
             wayNodes = []
             for nd in wayData["nd"]:
-                if nd not in nodes: continue
+                if nd not in nodes:
+                    continue
                 wayNodes.append((nodes[nd]["id"], nodes[nd]["lat"], nodes[nd]["lon"]))
             self.storeWay(wayId, wayData["tag"], wayNodes)
 
@@ -351,7 +380,7 @@ class Datastore:
 
                 # Ignore foot restrictions unless explicitly stated
                 if self.transport == "foot" and relData["tag"].get("type") != "restriction:foot" and \
-                         "restriction:foot" not in relData["tag"]:
+                        "restriction:foot" not in relData["tag"]:
                     continue
 
                 restrictionType = relData["tag"].get("restriction:" + self.transport) or relData["tag"]["restriction"]
@@ -361,8 +390,10 @@ class Datastore:
                 toMember = [i for i in relData["member"] if i["role"] == "to"][0]
 
                 for viaMember in [i for i in relData["member"] if i["role"] == "via"]:
-                    if viaMember["type"] == "way": nodes.append(ways[int(viaMember["ref"])]["nd"])
-                    else: nodes.append([int(viaMember["ref"])])
+                    if viaMember["type"] == "way":
+                        nodes.append(ways[int(viaMember["ref"])]["nd"])
+                    else:
+                        nodes.append([int(viaMember["ref"])])
 
                 nodes.insert(0, ways[int(fromMember["ref"])]["nd"])
                 nodes.append(ways[int(toMember["ref"])]["nd"])
@@ -373,13 +404,14 @@ class Datastore:
                 continue
 
     def storeRestriction(self, relId, restrictionType, members):
-        # Order members of restriction, so that members look somewhat like this: ([a, b], [b, c], [c], [c, d, e], [e, f])
-        for x in range(len(members)-1):
-            commonNode = (set(members[x]).intersection(set(members[x+1]))).pop()
+        # Order members of restriction, so that members look somewhat like this:
+        # ([a, b], [b, c], [c], [c, d, e], [e, f])
+        for x in range(len(members) - 1):
+            commonNode = (set(members[x]).intersection(set(members[x + 1]))).pop()
 
             # If first node of member[x+1] is different then common_node, try to reverse it
-            if members[x+1][0] != commonNode:
-                members[x+1].reverse()
+            if members[x + 1][0] != commonNode:
+                members[x + 1].reverse()
 
             # Only the "from" way can be reversed while ordering the nodes,
             # Otherwise, the x way could be reversed twice (as member[x] and member[x+1])
@@ -387,15 +419,16 @@ class Datastore:
                 members[x].reverse()
 
             # Assume member[x] and member[x+1] are ordered correctly
-            assert members[x][-1] == members[x+1][0]
+            assert members[x][-1] == members[x + 1][0]
 
         if restrictionType.startswith("no_"):
             # Start by denoting 'from>via'
             forbid = "{},{},".format(members[0][-2], members[1][0])
 
             # Add all via members
-            for x in range(1, len(members)-1):
-                for i in members[x][1:]: forbid += "{},".format(i)
+            for x in range(1, len(members) - 1):
+                for i in members[x][1:]:
+                    forbid += "{},".format(i)
 
             # Finalize by denoting 'via>to'
             forbid += str(members[-1][1])
@@ -407,8 +440,9 @@ class Datastore:
             forceActivator = "{},{}".format(members[0][-2], members[1][0])
 
             # Add all via members
-            for x in range(1, len(members)-1):
-                for i in members[x][1:]: force.append(i)
+            for x in range(1, len(members) - 1):
+                for i in members[x][1:]:
+                    force.append(i)
 
             # Finalize by denoting 'via>to'
             force.append(members[-1][1])
@@ -424,17 +458,15 @@ class Datastore:
         if not oneway and (tags.get("junction", "") in ["roundabout", "circular"] or highway == "motorway"):
             oneway = "yes"
 
-        if self.transport == "foot" or (oneway in ["yes", "true", "1", "-1"] and tags.get("oneway:" + self.transport, "yes") == "no"):
+        if self.transport == "foot" or (
+                oneway in ["yes", "true", "1", "-1"] and tags.get("oneway:" + self.transport, "yes") == "no"):
             oneway = "no"
 
         # Calculate what vehicles can use this route
-        get_weight = self.type["weights"].get(highway, 0) or \
-                 self.type["weights"].get(railway, 0)
-                 
-        if not isinstance(get_weight, (int, float)):
-            weight = get_weight(tags)
-        else:
-            weight = get_weight
+        weight = self.type["weights"].get(highway, 0) or self.type["weights"].get(railway, 0)
+
+        if callable(weight):
+            weight = weight(tags)
 
         # Check against access tags
         if (not self._allowedVehicle(tags)) or weight <= 0:
@@ -446,12 +478,16 @@ class Datastore:
             node2Id, node2Lat, node2Lon = nodes[index]
 
             # Check if nodes' positions are stored
-            if node1Id not in self.rnodes: self.rnodes[node1Id] = (node1Lat, node1Lon)
-            if node2Id not in self.rnodes: self.rnodes[node2Id] = (node2Lat, node2Lon)
+            if node1Id not in self.rnodes:
+                self.rnodes[node1Id] = (node1Lat, node1Lon)
+            if node2Id not in self.rnodes:
+                self.rnodes[node2Id] = (node2Lat, node2Lon)
 
             # Check if nodes have dicts for storing travel costs
-            if node1Id not in self.routing: self.routing[node1Id] = {}
-            if node2Id not in self.routing: self.routing[node2Id] = {}
+            if node1Id not in self.routing:
+                self.routing[node1Id] = {}
+            if node2Id not in self.routing:
+                self.routing[node2Id] = {}
 
             # Is way traversible forward?
             if oneway not in ["-1", "reverse"]:
@@ -469,7 +505,7 @@ class Datastore:
 
         # Iterate over nodes and overwrite closest_node if it's closer
         for nodeId, nodePos in self.rnodes.items():
-            
+
             distanceDiff = distance(nodePos, (lat, lon))
             if distanceDiff < maxDist:
                 maxDist = distanceDiff
@@ -482,17 +518,18 @@ class Datastore:
         print("Loaded %d nodes" % len(list(self.rnodes)))
         print("Loaded %d %s routes" % (len(list(self.routing)), self.transport))
 
+
 class Router(Datastore):
     def __getattr__(self, name):
         """BACKWARDS COMAPTIBILITY WHEN DATASTORE WAS AT Router.data"""
-        if name == ("data"):
+        if name == "data":
             warn("Router inherits from Datastore, call router.* instead of router.data.*", SyntaxWarning)
             return self
         return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
         """BACKWARDS COMAPTIBILITY WHEN DATASTORE WAS AT Router.data"""
-        if name == ("data"):
+        if name == "data":
             warn("Router inherits from Datastore, call router.* instead of router.data.*", SyntaxWarning)
             return self
         return object.__setattr__(self, name, value)
@@ -546,7 +583,8 @@ class Router(Datastore):
             if endQueueItem and endQueueItem["cost"] < totalCost:
                 return
 
-            # If the queued way to end has higher total cost, remove it (and add the queueSoFar scenario, as it's cheaper)
+            # If the queued way to end has higher total cost,
+            # remove it (and add the queueSoFar scenario, as it's cheaper)
             elif endQueueItem:
                 _queue.remove(endQueueItem)
 
@@ -563,7 +601,7 @@ class Router(Datastore):
                         break
 
             # Create a hash for all the route's attributes
-            queueItem = { \
+            queueItem = {
                 "cost": totalCost,
                 "heuristicCost": heuristicCost,
                 "nodes": allNodes,
@@ -633,4 +671,3 @@ class Router(Datastore):
 
         else:
             return "gave_up", []
-

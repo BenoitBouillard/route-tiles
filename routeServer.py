@@ -67,19 +67,17 @@ class Route(object):
         self.route = route
         self.routeLatLons = list(map(router.nodeLatLon, route))
         self.computeLength(self.routeLatLons)
-        self._length = 0
+        self.length = self.computeLength(self.routeLatLons)
 
-    @property
-    def length(self):
-        return self._length
 
-    def computeLength(self, routeLatLons):
+    @staticmethod
+    def computeLength(routeLatLons):
         length = 0
         previous = routeLatLons[0]
         for latlon in routeLatLons[1:]:
             length += distance(previous, latlon)
             previous = latlon
-        self._length = length
+        return length
 
 
     def toGpx(self, filename, name):
@@ -98,7 +96,7 @@ class MyRouter(object):
         self.tiles = tiles
         self.progress = 100.0
         def _exportTiles(tiles):
-            with open('tiles.js', 'w') as hf:
+            with open('debug/tiles.js', 'w') as hf:
                 hf.write("var tiles = [\n")
                 for t in tiles:
                     hf.write(" [ \n")
@@ -159,7 +157,7 @@ class MyRouter(object):
 
         def _exportQueue(nextItem=None):
             nonlocal _closed, _queue, _closeNode
-            with open('routes.js', 'w') as hf:
+            with open('debug/routes.js', 'w') as hf:
                 hf.write("var routes = [\n")
                 if nextItem:
                     route = [int(i) for i in nextItem["nodes"].split(",")]
@@ -217,7 +215,7 @@ class MyRouter(object):
                 if (start, frozenset(tiles), end) in md:
                     return md[(start, frozenset(tiles), end)]
                     
-                min = None
+                min_dist = None
                 for t in tiles:
                     remain_tiles = set(tiles)-{t}
                     if fast and len(t.entryNodeId)>4:
@@ -227,10 +225,10 @@ class MyRouter(object):
                     for entry in ep:
                         pa = distance(start, entry)
                         pb = _minDist(entry, remain_tiles, end, fast=fast)
-                        if min is None or pa+pb<min: min = pa+pb
+                        if min_dist is None or pa+pb<min_dist: min_dist = pa+pb
                 if store:
-                    md[(start, frozenset(tiles), end)] = min
-                return min
+                    md[(start, frozenset(tiles), end)] = min_dist
+                return min_dist
                 
             # t = time.time() if len(minDists)==0 else None
             hc = _minDist(self.router.rnodes[end],notVisitedZones, self.router.rnodes[_end], False, len(notVisitedZones)>5)
@@ -274,7 +272,7 @@ class MyRouter(object):
                         break
 
             # Create a hash for all the route's attributes
-            queueItem = { \
+            queueItem = {
                 "cost": totalCost,
                 "heuristicCost": heuristicCost,
                 "nodes": allNodes,
@@ -395,6 +393,8 @@ def computeMissingKml(file):
         if not ymax or tile.y>ymax: ymax=tile.y
                 
     max_square = 1
+    max_square_x = 0
+    max_square_y = 0
 
     def is_square(x, y, m):
         if x+m > xmax or y+m > ymax: return False
@@ -477,8 +477,8 @@ class RouteServer(object):
     
 
 if __name__ == '__main__':
-    import time
-    TilesToKml(['8251_5613', '8251_5614', '8249_5615'], "test", "test")
+    #import time
+    TilesToKml(['8251_5613', '8251_5614', '8249_5615'], "debug/test.kml", "test")
     #rs = RouteServer()
     #print(computeMissingKml(open("missing_tiles.kml", "rb")))
     # print(rs.startRoute([49.250775603162886,1.4452171325683596], [49.250775603162886,1.4452171325683596], [205], thread=False).min_route.getCoords(rs.myRouter.router))

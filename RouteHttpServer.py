@@ -13,9 +13,20 @@ from datetime import datetime
 import random
 import string
 from pprint import pprint
+from pathlib import Path
+
+
+# TODO [Bug] display if a tile have no entry point
+# TODO [Improvement] Add CANCEL to merge
+# TODO [Improvement] Add Elevation
+# TODO [Improvement] Add option to avoid turn around (Turn around price ?)
+# TODO [Improvement] Direct download trace
+# TODO [Improvement] Add description to buttons
+# TODO [Improvement] Add line command arguments for port
+# TODO [Improvement] Add installation for python package
+
 
 PORT = 8000
-
 
 sessionDict = {}
 chars = string.ascii_letters + string.digits
@@ -31,10 +42,12 @@ def generateRandom(length):
 
 class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         
-    def __init__(self, *args, directory=None, **kwargs):
-        super().__init__(*args, directory=None, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.session = None
         self.sessionId = None
+        Path(os.path.join(self.directory, 'gpx')).mkdir(exist_ok=True)
+
 
     def do_GET_request(self):
         parsed_path = parse.urlparse(self.path)
@@ -89,8 +102,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             answer['state'] = 'complete'
         else:
             answer['state'] = 'searching...'
-            
-        
+
         route = self.session.routeServer.route
         if route:
             crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
@@ -208,8 +220,8 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         if parsed_path.path=="/generate_gpx":
             self._set_headers()
             pprint(dict(self.headers))
-            len = int(self.headers['Content-Length'])
-            data = self.rfile.read(len).decode("utf-8")
+            length = int(self.headers['Content-Length'])
+            data = self.rfile.read(length).decode("utf-8")
             qs = parse.parse_qs(data, keep_blank_values=True)
             gpxName = str(qs.get('name', [""])[0])
             latlons = [x.split(',') for x in qs['points[]']]
@@ -234,7 +246,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
     def deal_post_data(self):
         content_type = self.headers['content-type']
         if not content_type:
-            return (None, "Content-Type header doesn't contain boundary")
+            return None, "Content-Type header doesn't contain boundary"
         boundary = content_type.split("=")[1].encode()
         remainbytes = int(self.headers['content-length'])
         line = self.rfile.readline()

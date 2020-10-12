@@ -33,13 +33,13 @@ def TileFromCoord(lat, lon, output="list"):
 
 
 class Coord(object):
-    def __init__(self, lat, lon, id=None):
+    def __init__(self, lat, lon, node_id=None):
         self.lat = lat
         self.lon = lon
-        self.nodeId = id
+        self.nodeId = node_id
     @property
     def latlon(self):
-        return (self.lat, self.lon)
+        return self.lat, self.lon
     def __repr__(self):
         return "{},{}({})".format(self.lat, self.lon, self.nodeId)
         
