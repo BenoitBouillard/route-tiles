@@ -12,7 +12,6 @@ import struct
 from datetime import datetime
 import random
 import string
-from http.cookies import SimpleCookie
 from pprint import pprint
 
 PORT = 8000
@@ -32,6 +31,11 @@ def generateRandom(length):
 
 class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         
+    def __init__(self, *args, directory=None, **kwargs):
+        super().__init__(*args, directory=None, **kwargs)
+        self.session = None
+        self.sessionId = None
+
     def do_GET_request(self):
         parsed_path = parse.urlparse(self.path)
         message_parts = [
@@ -175,10 +179,10 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         
     def do_GET(self):
         parsed_path = parse.urlparse(self.path)
-            
+        self.session = self.Session()
+
         mname = 'do_GET_' + parsed_path.path[1:]
         if hasattr(self, mname):
-            self.session = self.Session()
             self._set_headers()
             method = getattr(self, mname)
             method()

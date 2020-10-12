@@ -1,22 +1,5 @@
 from mathutils import *
-from shapely.geometry import Point, LineString, Polygon, LinearRing
-
-
-# sec = 1/cos
-# arsinh(x) = log(x + (x^2 + 1)^0.5)
-# sec^2(x) = tan^2(x) + 1
-# → arsinh(tan(x)) = log(tan(x) + sec(x))
-# Please note that "log" represents the natural logarithm (also known as ln or loge), not decimal logarithm (log10), as used on some calculators.
-
-# Lon./lat. to tile numbers
-# n = 2 ^ zoom
-# xtile = n * ((lon_deg + 180) / 360)
-# ytile = n * (1 - (log(tan(lat_rad) + sec(lat_rad)) / π)) / 2
-# Tile numbers to lon./lat.
-# n = 2 ^ zoom
-# lon_deg = xtile / n * 360.0 - 180.0
-# lat_rad = arctan(sinh(π * (1 - 2 * ytile / n)))
-# lat_deg = lat_rad * 180.0 / π  
+from shapely.geometry import Point, LineString, LinearRing
 import math  
     
 def coordFromTile(x, y=None):
@@ -150,8 +133,8 @@ class Tile(ZoneWithEntries):
         return [ (nw, ne), (ne, se), (se, sw), (sw, nw) ]
         
     def linearRing(self, offset=0):
-        deltaLat = (self.latN - self.latS) / (1000 * compute_distance((self.latN, self.lonW), (self.latS, self.lonW))) * offset
-        deltaLon = (self.lonW - self.lonE) / (1000 * compute_distance((self.latN, self.lonW), (self.latN, self.lonE))) * offset
+        deltaLat = (self.latN - self.latS) / (1000 * distance((self.latN, self.lonW), (self.latS, self.lonW))) * offset
+        deltaLon = (self.lonW - self.lonE) / (1000 * distance((self.latN, self.lonW), (self.latN, self.lonE))) * offset
         nw = (self.latN - deltaLat, self.lonW - deltaLon)
         ne = (self.latN - deltaLat, self.lonE + deltaLon)
         se = (self.latS + deltaLat, self.lonE + deltaLon)
@@ -189,7 +172,7 @@ class Tile(ZoneWithEntries):
         
         for nodeA, nodes in list(router.routing.items()):
             latlon = router.nodeLatLon(nodeA)
-            if compute_distance(latlon, (self.lat, self.lon)) > 5: continue
+            if distance(latlon, (self.lat, self.lon)) > 5: continue
             pointA = Point(*latlon)
             for nodeB in list(nodes):
                 pointB = Point(*router.nodeLatLon(nodeB))

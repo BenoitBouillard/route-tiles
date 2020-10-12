@@ -44,7 +44,7 @@ from warnings import warn
 from datetime import datetime
 from collections import OrderedDict
 from urllib.request import urlretrieve
-from functools import wraps
+from mathutils import distance, retry
 
 __title__ = "pyroutelib3"
 __description__ = "Library for simple routing on OSM data"
@@ -122,60 +122,52 @@ def _whichTile(lat, lon, zoom):
 def _tileBoundary(x, y, z):
     """Return (left, bottom, right, top) of bbox of given tile"""
     n = 2 ** z
-    mercToLat = lambda x: math.degrees(math.atan(math.sinh(x)))
+    mercToLat = lambda v: math.degrees(math.atan(math.sinh(v)))
     top = mercToLat(math.pi * (1 - 2 * (y * (1/n))))
     bottom = mercToLat(math.pi * (1 - 2 * ((y+1) * (1/n))))
     left = x * (360/n) -180
     right = left + (360/n)
     return left, bottom, right, top
 
-def retry(ExceptionToCheck, tries=4, delay=3, backoff=2, logger=None):
-    """Retry calling the decorated function using an exponential backoff.
-
-    http://www.saltycrane.com/blog/2009/11/trying-out-retry-decorator-python/
-    original from: http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
-
-    :param ExceptionToCheck: the exception to check. may be a tuple of
-        exceptions to check
-    :type ExceptionToCheck: Exception or tuple
-    :param tries: number of times to try (not retry) before giving up
-    :type tries: int
-    :param delay: initial delay between retries in seconds
-    :type delay: int
-    :param backoff: backoff multiplier e.g. value of 2 will double the delay
-        each retry
-    :type backoff: int
-    :param logger: logger to use. If None, print
-    :type logger: logging.Logger instance
-    """
-    def deco_retry(f):
-
-        @wraps(f)
-        def f_retry(*args, **kwargs):
-            mtries, mdelay = tries, delay
-            while mtries > 1:
-                try:
-                    return f(*args, **kwargs)
-                except ExceptionToCheck as e:
-                    msg = "%s, Retrying in %d seconds..." % (str(e), mdelay)
-                    if logger:
-                        logger.warning(msg)
-                    else:
-                        print(msg)
-                    time.sleep(mdelay)
-                    mtries -= 1
-                    mdelay *= backoff
-            return f(*args, **kwargs)
-
-        return f_retry  # true decorator
-
-    return deco_retry
     
 @retry(Exception, tries=6, delay=30, backoff=2)
 def myurlretrieve(url, filename=None, reporthook=None, data=None):
     return urlretrieve(url, filename, reporthook, data)
 
-    
+
+def attributes(element):
+    """Get OSM element atttributes and do some common type conversion"""
+    result = {}
+    for k, v in element.attrib.items():
+        if k == "uid": v = int(v)
+        elif k == "changeset": v = int(v)
+        elif k == "version": v = float(v)
+        elif k == "id": v = int(v)
+        elif k == "lat": v = float(v)
+        elif k == "lon": v = float(v)
+        elif k == "open": v = (v == "true")
+        elif k == "visible": v = (v == "true")
+        elif k == "ref": v = int(v)
+        elif k == "comments_count": v = int(v)
+        result[k] = v
+    return result
+
+
+def equivalent(tag):
+    """Simplifies a bunch of tags to nearly-equivalent ones"""
+    equivalent = { \
+        "motorway_link": "motorway",
+        "trunk_link": "trunk",
+        "primary_link": "primary",
+        "secondary_link": "secondary",
+        "tertiary_link": "tertiary",
+        "minor": "unclassified",
+        "pedestrian": "footway",
+        "platform": "footway",
+    }
+    return equivalent.get(tag, tag)
+
+
 class Datastore:
     """Object for storing routing data with basic OSM parsing functionality"""
     def __init__(self, transport, localfile=False, expire_data=30, storage_class=dict, cache_dir="tilescache"):
@@ -230,32 +222,6 @@ class Datastore:
                 else: allowed =  True
 
         return allowed
-
-    def _attributes(self, element):
-        """Get OSM element atttributes and do some common type conversion"""
-        result = {}
-        for k, v in element.attrib.items():
-            if k == "uid": v = int(v)
-            elif k == "changeset": v = int(v)
-            elif k == "version": v = float(v)
-            elif k == "id": v = int(v)
-            elif k == "lat": v = float(v)
-            elif k == "lon": v = float(v)
-            elif k == "open": v = (v == "true")
-            elif k == "visible": v = (v == "true")
-            elif k == "ref": v = int(v)
-            elif k == "comments_count": v = int(v)
-            result[k] = v
-        return result
-
-    def distance(self, n1, n2):
-        """Calculate distance in km between two nodes using haversine forumla"""
-        lat1, lon1 = n1[0], n1[1]
-        lat2, lon2 = n2[0], n2[1]
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        d = math.sin(math.radians(dlat) * 0.5) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(math.radians(dlon) * 0.5) ** 2
-        return math.asin(math.sqrt(d)) * 12742
 
     def nodeLatLon(self, node):
         """Get node's lat lon"""
@@ -339,7 +305,7 @@ class Datastore:
 
         try:
             for event, elem in etree.iterparse(fp):
-                data = self._attributes(elem)
+                data = attributes(elem)
                 data["tag"] = {i.attrib["k"]: i.attrib["v"] for i in elem.iter("tag")}
 
                 if elem.tag == "node":
@@ -352,7 +318,7 @@ class Datastore:
 
                 # Store only potential turn restrictions
                 elif elem.tag == "relation" and data["tag"].get("type", "").startswith("restriction"):
-                    data["member"] = [self._attributes(i) for i in elem.iter("member")]
+                    data["member"] = [attributes(i) for i in elem.iter("member")]
                     relations[data["id"]] = data
 
         finally:
@@ -450,8 +416,8 @@ class Datastore:
             self.mandatoryMoves[forceActivator] = force
 
     def storeWay(self, wayId, tags, nodes):
-        highway = self.equivalent(tags.get("highway", ""))
-        railway = self.equivalent(tags.get("railway", ""))
+        highway = equivalent(tags.get("highway", ""))
+        railway = equivalent(tags.get("railway", ""))
         oneway = tags.get("oneway", "")
 
         # Oneway is default on roundabouts
@@ -462,11 +428,13 @@ class Datastore:
             oneway = "no"
 
         # Calculate what vehicles can use this route
-        weight = self.type["weights"].get(highway, 0) or \
+        get_weight = self.type["weights"].get(highway, 0) or \
                  self.type["weights"].get(railway, 0)
                  
-        if not isinstance(weight, (int, float)):
-            weight = weight(tags)
+        if not isinstance(get_weight, (int, float)):
+            weight = get_weight(tags)
+        else:
+            weight = get_weight
 
         # Check against access tags
         if (not self._allowedVehicle(tags)) or weight <= 0:
@@ -493,20 +461,6 @@ class Datastore:
             if oneway not in ["yes", "true", "1"]:
                 self.routing[node2Id][node1Id] = weight
 
-    def equivalent(self, tag):
-        """Simplifies a bunch of tags to nearly-equivalent ones"""
-        equivalent = { \
-            "motorway_link": "motorway",
-            "trunk_link": "trunk",
-            "primary_link": "primary",
-            "secondary_link": "secondary",
-            "tertiary_link": "tertiary",
-            "minor": "unclassified",
-            "pedestrian": "footway",
-            "platform": "footway",
-        }
-        return equivalent.get(tag, tag)
-
     def findNode(self, lat, lon):
         """Find the nearest node that can be the start of a route"""
         # Get area around location we're trying to find
@@ -516,7 +470,7 @@ class Datastore:
         # Iterate over nodes and overwrite closest_node if it's closer
         for nodeId, nodePos in self.rnodes.items():
             
-            distanceDiff = self.distance(nodePos, (lat, lon))
+            distanceDiff = distance(nodePos, (lat, lon))
             if distanceDiff < maxDist:
                 maxDist = distanceDiff
                 closestNode = nodeId
@@ -570,9 +524,9 @@ class Router(Datastore):
             if len(queueSoFar["nodes"].split(",")) >= 2 and queueSoFar["nodes"].split(",")[-2] == str(end):
                 return
 
-            edgeCost = self.distance(self.rnodes[start], self.rnodes[end]) / weight
+            edgeCost = distance(self.rnodes[start], self.rnodes[end]) / weight
             totalCost = queueSoFar["cost"] + edgeCost
-            heuristicCost = totalCost + self.distance(self.rnodes[end], self.rnodes[_end])
+            heuristicCost = totalCost + distance(self.rnodes[end], self.rnodes[_end])
             allNodes = queueSoFar["nodes"] + "," + str(end)
 
             # Check if path queueSoFar+end is not forbidden

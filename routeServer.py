@@ -2,19 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from fastkml import kml, styles
-from tile import Tile, Coord, CoordDict, Point, coordFromTile
+from tile import Tile, CoordDict, coordFromTile
 from pyroutelib3 import Router
 import os
 from pathlib import Path
 from mathutils import *
-import pickle
-from functools import reduce
-from itertools import permutations, combinations
-import time
 import threading
 import gpxpy
 import gpxpy.gpx
-from pprint import pprint
 
 MOVE_MODE = ["foot", "roadcycle"][1]
 
@@ -72,6 +67,7 @@ class Route(object):
         self.route = route
         self.routeLatLons = list(map(router.nodeLatLon, route))
         self.computeLength(self.routeLatLons)
+        self._length = 0
 
     @property
     def length(self):
@@ -81,7 +77,7 @@ class Route(object):
         length = 0
         previous = routeLatLons[0]
         for latlon in routeLatLons[1:]:
-            length += compute_distance(previous, latlon)
+            length += distance(previous, latlon)
             previous = latlon
         self._length = length
 
@@ -141,7 +137,7 @@ class MyRouter(object):
             print("\n**** FIND MIN ROUTE {:.2f}km ****\n".format(self.min_length))
 
         self.progress = 100.0
-        printProgressBar(100, 100)
+        print_progress_bar(100, 100)
         self._complete = True
         return route
 
@@ -207,7 +203,7 @@ class MyRouter(object):
             # if len(queueSoFar["nodes"].split(",")) >= 2 and queueSoFar["nodes"].split(",")[-2] == str(end):
             #    return
 
-            edgeCost = self.router.distance(self.router.rnodes[start], self.router.rnodes[end]) / weight
+            edgeCost = distance(self.router.rnodes[start], self.router.rnodes[end]) / weight
             totalCost = queueSoFar["cost"] + edgeCost
                 
             def _minDist(start, tiles, end, store=True, fast=False):
@@ -216,20 +212,20 @@ class MyRouter(object):
                 md = minDistsFast if fast else minDists
                 ### compute flyby min distance by visiting all tiles
                 if len(tiles)==0:
-                    return self.router.distance(start, end)
+                    return distance(start, end)
                     
                 if (start, frozenset(tiles), end) in md:
                     return md[(start, frozenset(tiles), end)]
                     
                 min = None
                 for t in tiles:
-                    remain_tiles = set(tiles)-set([t])
+                    remain_tiles = set(tiles)-{t}
                     if fast and len(t.entryNodeId)>4:
                         ep = t.edges
                     else:
                         ep = [n.latlon for n in t.entryNodeId]
                     for entry in ep:
-                        pa = self.router.distance(start, entry)
+                        pa = distance(start, entry)
                         pb = _minDist(entry, remain_tiles, end, fast=fast)
                         if min is None or pa+pb<min: min = pa+pb
                 if store:
@@ -331,12 +327,12 @@ class MyRouter(object):
                 self.min_length = nextItem['cost']
                 self._min_route = nextItem['nodes']
                 self.progress = 100.0 * nextItem['cost'] / nextItem['heuristicCost']
-                printProgressBar(nextItem['cost'], nextItem['heuristicCost'])
+                print_progress_bar(nextItem['cost'], nextItem['heuristicCost'])
 
 
             for zone in notVisitedZones:
                 if consideredNode in zone.entryNodesId:
-                    notVisitedZones = notVisitedZones - set([zone])
+                    notVisitedZones = notVisitedZones - {zone}
 
             # If we already visited the node, ignore it
             if (consideredNode, notVisitedZones) in _closed:
@@ -430,7 +426,7 @@ class RouteServer(object):
         self.router = None
         self.myRouter = False
         self.mode = None
-        
+        self.thread = None
 
     def startRoute(self, mode, startLoc, endLoc, tiles, thread=True):
         print(tiles)
@@ -465,7 +461,7 @@ class RouteServer(object):
         else:
             self.myRouter.run()
 
-        return self.myRouter;
+        return self.myRouter
 
     @property
     def progress(self):

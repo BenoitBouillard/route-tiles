@@ -1,69 +1,21 @@
-from numpy import *
+from numpy import math
+from functools import wraps
+import time
 
 
-def compute_distance(n1, n2):
-    """Calculate distance in km between two nodes using haversine forumla"""
+def distance(n1, n2):
+    """Calculate distance in km between two nodes"""
     lat1, lon1 = n1[0], n1[1]
     lat2, lon2 = n2[0], n2[1]
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    d = math.sin(math.radians(dlat) * 0.5) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(math.radians(dlon) * 0.5) ** 2
+    delta_lat = lat2 - lat1
+    delta_lon = lon2 - lon1
+    d = math.sin(math.radians(delta_lat) * 0.5) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) \
+        * math.sin(math.radians(delta_lon) * 0.5) ** 2
     return math.asin(math.sqrt(d)) * 12742
-    
-    
-def perp( a ) :
-    b = empty_like(a)
-    b[0] = -a[1]
-    b[1] = a[0]
-    return b
 
-# line segment a given by endpoints a1, a2
-# line segment b given by endpoints b1, b2
-# return 
-def seg_intersect(a1,a2, b1,b2) :
-    da = a2-a1
-    db = b2-b1
-    dp = a1-b1
-    dap = perp(da)
-    denom = dot( dap, db)
-    num = dot( dap, dp )
-    return (num / denom.astype(float))*db + b1
-    
-def intersect(vectorA, vectorB):
-    X1, Y1 = vectorA[0]
-    X2, Y2 = vectorA[1]
-    X3, Y3 = vectorB[0]
-    X4, Y4 = vectorB[1]
-    
-    inter = seg_intersect(array([X1, Y1]), array([X2, Y2]), array([X3, Y3]), array([X4, Y4]))
-    
-    return inter[0]>=min(X3, X4) and inter[0]<=max(X3,X4) and inter[1]>=min(Y3, Y4) and inter[1]<=max(Y4,Y3) and inter[0]>=min(X1, X2) and inter[0]<=max(X1,X2) and inter[1]>=min(Y1, Y2) and inter[1]<=max(Y1,Y2)
 
-def isRight(vectorA, vectorB):
-    X1, Y1 = vectorA[0]
-    X2, Y2 = vectorA[1]
-    X3, Y3 = vectorB[0]
-    X4, Y4 = vectorB[1]
-    Ax = X2-X1
-    Ay = Y2-Y1
-    Bx = X4-X3
-    By = Y4-Y3
-    return -Ax * By + Ay * Bx > 0    
-    
-def isLeft(vectorA, vectorB):
-    X1, Y1 = vectorA[0]
-    X2, Y2 = vectorA[1]
-    X3, Y3 = vectorB[0]
-    X4, Y4 = vectorB[1]
-    Ax = X2-X1
-    Ay = Y2-Y1
-    Bx = X4-X3
-    By = Y4-Y3
-    return -Ax * By + Ay * Bx < 0    
-    
-    
 # Print iterations progress
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', print_end="\r"):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -77,9 +29,52 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end=print_end)
     # Print New Line on Complete
-    if iteration == total: 
-        print()    
+    if iteration == total:
+        print()
+
+
+def retry(exception_to_check, tries=4, delay=3, backoff=2, logger=None):
+    """Retry calling the decorated function using an exponential backoff.
+
+    http://www.saltycrane.com/blog/2009/11/trying-out-retry-decorator-python/
+    original from: http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
+
+    :param exception_to_check: the exception to check. may be a tuple of
+        exceptions to check
+    :type exception_to_check: Exception or tuple
+    :param tries: number of times to try (not retry) before giving up
+    :type tries: int
+    :param delay: initial delay between retries in seconds
+    :type delay: int
+    :param backoff: backoff multiplier e.g. value of 2 will double the delay
+        each retry
+    :type backoff: int
+    :param logger: logger to use. If None, print
+    :type logger: logging.Logger instance
+    """
+    def deco_retry(f):
+
+        @wraps(f)
+        def f_retry(*args, **kwargs):
+            mtries, mdelay = tries, delay
+            while mtries > 1:
+                try:
+                    return f(*args, **kwargs)
+                except exception_to_check as e:
+                    msg = "%s, Retrying in %d seconds..." % (str(e), mdelay)
+                    if logger:
+                        logger.warning(msg)
+                    else:
+                        print(msg)
+                    time.sleep(mdelay)
+                    mtries -= 1
+                    mdelay *= backoff
+            return f(*args, **kwargs)
+
+        return f_retry  # true decorator
+
+    return deco_retry
