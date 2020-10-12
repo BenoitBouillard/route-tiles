@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<title>Quick Start - Leaflet</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+    <!--script src="route.js"></script-->
+    <script src="routes.js"></script>
+    <script src="tiles.js"></script>
+    <!-- <script src="nodes.js"></script> -->
+<script
+  src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+  integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8="
+  crossorigin="anonymous"></script>
+	
+    
+<style>
+  .highlight {
+    background: yellow;
+  }
+  
+.column {
+  float: left;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}  
+  </style>    
+</head>
+<body>
+
+
+<div class="row">
+  <div class="column">
+    <div id="mapid" style="width: 800px; height: 600px;">
+  </div>
+</div>
+<div style="overflow:scroll; border:#000000 1px solid;height: 600px;">
+  <div class="column"></div>
+    <ul id="routeList">
+    </ul>
+</div>
+</div>
+
+
+<script>
+
+	var mymap = L.map('mapid').setView([51.505, -0.09], 13);
+
+	L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+		maxZoom: 18,
+		attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+			'<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+			'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+		id: 'mapbox/streets-v11'
+	}).addTo(mymap);
+
+    /*var polyline = L.polyline(latlngs, {color: 'red'}).addTo(mymap);
+    // zoom the map to the polyline
+    mymap.fitBounds(polyline.getBounds());*/
+    
+    var dictLiPoly = {}
+    var dictLiCircle = {}
+    
+    highlightRoute = function(route) {
+    }
+    
+    for (i in routes) {
+      routeLi = $('<li id="li_'+i+'">'+routes[i].name+' ('+routes[i].length.toFixed(2)+' km)'+'</li>').appendTo('#routeList');
+      polyline = L.polyline(routes[i].route, {color: '#FF8080', opacity:0.3}).addTo(mymap).bindPopup(routes[i].name);
+
+      circle = L.circle(routes[i].route[routes[i].route.length - 1], {
+            color: 'green',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: 5
+        }).addTo(mymap);
+
+      dictLiPoly[i] = polyline
+      dictLiCircle[i] = circle
+
+      polyline.on("mouseover", function(e) {
+          this.setStyle({opacity:1.0, color:'#FF0000'}).bringToFront();
+          for (var key in dictLiPoly) {
+            if (dictLiPoly[key]==this) {
+                $('li#li_'+key).addClass('highlight');
+            }
+          }
+      });
+      polyline.on("mouseout", function(e) {
+          this.setStyle({opacity:0.3, color:'#FF8080'});
+          for (var key in dictLiPoly) {
+            if (dictLiPoly[key]==this) {
+                $('li#li_'+key).removeClass('highlight');
+            }
+          }
+      });
+      routeLi.on("mouseover", function(e) {
+          id = (parseInt(this.id.substring(3, 5)))
+          dictLiPoly[id].setStyle({opacity:1.0, color:'#FF0000'}).bringToFront();
+          dictLiCircle[id].setStyle({opacity:1.0, radius:10}).bringToFront();
+          $(this).addClass('highlight');
+      });
+      routeLi.on("mouseout", function(e) {
+          id = (parseInt(this.id.substring(3, 5)))
+          dictLiPoly[id].setStyle({opacity:0.3, color:'#FF8080'});
+          dictLiCircle[id].setStyle({opacity:0.5, radius:5});
+          $(this).removeClass('highlight');
+      });
+      if (i==0) {
+    mymap.fitBounds(polyline.getBounds());
+      }
+    }
+    
+    for (i in tiles) {
+        L.polygon(tiles[i], {color: 'lightblue', fillOpacity:0.0}).addTo(mymap);
+    }
+    
+    for (i in nodes) {
+        var circle = L.circle(nodes[i], {
+            color: 'blue',
+            fillColor: 'blue',
+            fillOpacity: 1,
+            radius: 7
+        }).addTo(mymap);
+    }
+    
+
+
+        
+    
+</script>
+
+
+
+</body>
+</html>
+
