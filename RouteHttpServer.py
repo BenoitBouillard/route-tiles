@@ -16,7 +16,6 @@ from pprint import pprint
 from pathlib import Path
 
 
-# TODO [Bug] display if a tile have no entry point
 # TODO [Improvement] Add CANCEL to merge
 # TODO [Improvement] Add Elevation
 # TODO [Improvement] Add option to avoid turn around (Turn around price ?)
@@ -46,6 +45,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
         self.session = None
         self.sessionId = None
+        # Create gpx folder is not exists for gpx export
         Path(os.path.join(self.directory, 'gpx')).mkdir(exist_ok=True)
 
 
@@ -94,23 +94,30 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
                     tiles[i] = int(tiles[i])
         else:
             tiles = []
-        
-        self.session.routeServer.startRoute(mode, start, end, tiles)
-        
-        answer = { 'status':"OK", 'sessionId':self.sessionId }
-        if self.session.routeServer.isComplete:
-            answer['state'] = 'complete'
-        else:
-            answer['state'] = 'searching...'
 
-        route = self.session.routeServer.route
-        if route:
-            crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
-            
-            answer['findRouteId'] = crc
-            answer['length'] = route.length
-            answer['route'] = route.routeLatLons
-    
+        answer = {'sessionId':self.sessionId }
+
+        router, message, info = self.session.routeServer.startRoute(mode, start, end, tiles)
+
+        if router:
+            answer['status'] = "OK"
+            if self.session.routeServer.isComplete:
+                answer['state'] = 'complete'
+            else:
+                answer['state'] = 'searching...'
+
+            route = self.session.routeServer.route
+            if route:
+                crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
+
+                answer['findRouteId'] = crc
+                answer['length'] = route.length
+                answer['route'] = route.routeLatLons
+        else:
+            answer['status'] = "Fail"
+            answer['message'] = message
+            answer['tiles'] = info
+
         self.wfile.write(json.dumps(answer).encode('utf-8'))
         
         

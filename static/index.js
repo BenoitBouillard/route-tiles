@@ -19,14 +19,24 @@ $(document).ready(function(){
             L.Rectangle.prototype.initialize.call(this, latlngs, options);
             this.selected = false;
             this.highlighted = false;
+            this.iserror = false
         },
         update: function() {
             let opacity = 0;
+            let fill_color = this.options.color;
+            if (this.iserror) {
+                opacity = 0.7;
+                fill_color = "orange";
+            }
             if (this.selected) opacity += 0.2;
             if (this.highlighted) opacity += 0.1;
-            this.setStyle({fillOpacity:opacity});
+            this.setStyle({fillOpacity:opacity, fillColor:fill_color});
         },
         
+        error: function(level) {
+            this.iserror = level;
+            this.update();
+        },
         highlight: function(level) {
             this.highlighted = level;
             this.update();
@@ -88,6 +98,7 @@ $(document).ready(function(){
     var selected_tiles = []
     var missing_tiles = []
     var visited_tiles = []
+    var error_tiles = []
 
     function updateMapTiles(e) {
         console.log("updateMapTiles()");
@@ -121,6 +132,9 @@ $(document).ready(function(){
                         displayed_tiles.set(tile_id, tile_rect);
                         if (selected_tiles.includes(tile_id)) {
                             tile_rect.select(1)
+                        }
+                        if (error_tiles.includes(tile_id)) {
+                            tile_rect.error(1)
                         }
                     } else {
                         let tile = displayed_tiles.get(tile_id)
@@ -251,8 +265,24 @@ $(document).ready(function(){
             data: data,
             success: function ( data ) {
                 sessionId = data.sessionId
-                route_status(timeout_id);
+                if (data['status']=="OK") {
+                    for (let i=0; i<error_tiles.length; i++) {
+                        let tile = displayed_tiles.get(error_tiles[i])
+                        tile.error(0);
+                    }
+                    error_tiles = []
+                    route_status(timeout_id);
+                }
+                else {
+                    $("p#message").text("FAIL: "+data['message']);
+                    error_tiles = data.tiles;
+                    for (let i=0; i<error_tiles.length; i++) {
+                        let tile = displayed_tiles.get(error_tiles[i])
+                        tile.error(1);
+                    }
 
+                    //updateMapTiles();
+                }
             }
         });
     }
@@ -411,9 +441,9 @@ $(document).ready(function(){
                     bounds = boundsFromTileId(selected_tiles[i]);
                 }
 
+        updateMapTiles();
             }
         }
-        updateMapTiles();
 
         mymap.fitBounds(bounds);
         request_route();

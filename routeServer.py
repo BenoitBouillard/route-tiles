@@ -449,6 +449,8 @@ class RouteServer(object):
                 self.stored_tiles[t] = Tile(t)
             selectedTiles.append(self.stored_tiles[t])
             self.stored_tiles[t].getEntryPoints(self.router)
+            if not self.stored_tiles[t].entryNodeId:
+                return False, "No entry point for tiles", [t]
 
         self.myRouter = MyRouter(self.router, startPoint, endPoint, selectedTiles)
         if thread:
@@ -461,7 +463,7 @@ class RouteServer(object):
         else:
             self.myRouter.run()
 
-        return self.myRouter
+        return self.myRouter, self.isComplete, self.route
 
     @property
     def progress(self):
