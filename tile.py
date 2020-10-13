@@ -1,7 +1,8 @@
-from mathutils import *
 from shapely.geometry import Point, LineString, LinearRing
-import math  
-    
+
+from utils import *
+
+
 def coordFromTile(x, y=None):
     n = 2**14
     if y is None:

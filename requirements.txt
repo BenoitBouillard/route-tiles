@@ -1,2 +1,4 @@
+shapely
 fastkml
 gpxpy
+numpy

@@ -33,13 +33,13 @@
 #  2018-08-18  MK   New data download function
 #  2019-09-15  MK   Allow for custom storage classes, instead of default dict
 # ----------------------------------------------------------------------------
-import os
 import math
+import os
 import time
 import xml.etree.ElementTree as etree
-from warnings import warn
 from urllib.request import urlretrieve
-from mathutils import distance, retry
+
+from utils import distance, retry
 
 __title__ = "pyroutelib3"
 __description__ = "Library for simple routing on OSM data"
@@ -299,16 +299,13 @@ class Datastore:
             downloadedSecondsAgo = math.inf
 
         if downloadedSecondsAgo >= self.expire_data:
-            print("Get tile {},{}".format(x, y))
             left, bottom, right, top = _tileBoundary(x, y, z)
             myurlretrieve(
                 "https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top),
                 filename)
         try:
-            print("load", filename)
             self.loadOsm(filename)
         except etree.ParseError:
-            print("Recover tile {},{}".format(x, y))
             left, bottom, right, top = _tileBoundary(x, y, ZOOM_LEVEL)
             myurlretrieve(
                 "https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top),
@@ -366,7 +363,7 @@ class Datastore:
                 if nd not in nodes:
                     continue
                 wayNodes.append((nodes[nd]["id"], nodes[nd]["lat"], nodes[nd]["lon"]))
-            self.storeWay(wayId, wayData["tag"], wayNodes)
+            self.storeWay(wayData["tag"], wayNodes)
 
         for relId, relData in relations.items():
             try:
@@ -398,12 +395,12 @@ class Datastore:
                 nodes.insert(0, ways[int(fromMember["ref"])]["nd"])
                 nodes.append(ways[int(toMember["ref"])]["nd"])
 
-                self.storeRestriction(relId, restrictionType, nodes)
+                self.storeRestriction(restrictionType, nodes)
 
             except (KeyError, AssertionError, IndexError):
                 continue
 
-    def storeRestriction(self, relId, restrictionType, members):
+    def storeRestriction(self, restrictionType, members):
         # Order members of restriction, so that members look somewhat like this:
         # ([a, b], [b, c], [c], [c, d, e], [e, f])
         for x in range(len(members) - 1):
@@ -449,7 +446,7 @@ class Datastore:
 
             self.mandatoryMoves[forceActivator] = force
 
-    def storeWay(self, wayId, tags, nodes):
+    def storeWay(self, tags, nodes):
         highway = equivalent(tags.get("highway", ""))
         railway = equivalent(tags.get("railway", ""))
         oneway = tags.get("oneway", "")
@@ -517,4 +514,3 @@ class Datastore:
         """Display some info about the loaded data"""
         print("Loaded %d nodes" % len(list(self.rnodes)))
         print("Loaded %d %s routes" % (len(list(self.routing)), self.transport))
-
