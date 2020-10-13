@@ -1,5 +1,7 @@
 # Route Tiles project
 
+## Motivation
+
 This project objective is to compute route to explore tiles, by cycling or running.
 For "tiles" information, see https://www.statshunters.com or https://veloviewer.com.
 
@@ -36,7 +38,7 @@ There are 2 parts:
 - the server
 - the user interface
 
-###Server
+### Server
 
 #### Server role
 The server receive requests from the user interface and compute the route by:
@@ -145,3 +147,17 @@ It is possible also to merge route with the "+" button:
 veloviewer.com can export a kml file of missing tiles around your max square.
 You can import this file to display directly your max square 
 and the missing tiles.
+
+## TODO list
+
+-[ ] [Improvement] Add CANCEL to merge
+-[ ] [Improvement] Add Elevation
+-[ ] [Improvement] Add option to avoid turn around (Turn around price ?)
+-[ ] [Improvement] Add description to buttons
+-[ ] [Improvement] Add line command arguments for port
+-[X] [Improvement] Add installation for python package
+-[ ] [Improvement] All UI in FR or EN
+-[ ] [Improvement] Add a way to reload tiles data
+-[ ] [Improvement] Save routes locally
+-[X] [Improvement] Direct download trace
+-[X] [Bug] display if a tile has no entry point
