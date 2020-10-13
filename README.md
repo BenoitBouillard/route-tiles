@@ -150,14 +150,14 @@ and the missing tiles.
 
 ## TODO list
 
--[ ] [Improvement] Add CANCEL to merge
--[ ] [Improvement] Add Elevation
--[ ] [Improvement] Add option to avoid turn around (Turn around price ?)
--[ ] [Improvement] Add description to buttons
--[ ] [Improvement] Add line command arguments for port
--[X] [Improvement] Add installation for python package
--[ ] [Improvement] All UI in FR or EN
--[ ] [Improvement] Add a way to reload tiles data
--[ ] [Improvement] Save routes locally
--[X] [Improvement] Direct download trace
--[X] [Bug] display if a tile has no entry point
+- [ ] [Improvement] Add CANCEL to merge
+- [ ] [Improvement] Add Elevation
+- [ ] [Improvement] Add option to avoid turn around (Turn around price ?)
+- [ ] [Improvement] Add description to buttons
+- [ ] [Improvement] Add line command arguments for port
+- [X] [Improvement] Add installation for python package
+- [ ] [Improvement] All UI in FR or EN
+- [ ] [Improvement] Add a way to reload tiles data
+- [ ] [Improvement] Save routes locally
+- [X] [Improvement] Direct download trace
+- [X] [Bug] display if a tile has no entry point
