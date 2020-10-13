@@ -23,6 +23,7 @@ from tilesrouter import RouteServer, computeMissingKml, LatLonsToGpx, TilesToKml
 # TODO [Improvement] Add line command arguments for port
 # TODO [Improvement] Add installation for python package
 # TODO [Improvement] All UI in FR
+# TODO [Improvement] Add a way to reload tiles data
 
 
 PORT = 8000

@@ -11,8 +11,6 @@ import threading
 import gpxpy
 import gpxpy.gpx
 
-MOVE_MODE = ["foot", "roadcycle"][1]
-
 def LatLonsToGpx(latlons, filename, name):
     gpx = gpxpy.gpx.GPX()
 
