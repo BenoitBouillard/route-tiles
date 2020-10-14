@@ -14,7 +14,7 @@ $(document).ready(function(){
         options: {
             tile_id: 0
         },
-        
+
         initialize: function (latlngs, options) {
             L.Rectangle.prototype.initialize.call(this, latlngs, options);
             this.selected = false;
@@ -32,7 +32,7 @@ $(document).ready(function(){
             if (this.highlighted) opacity += 0.1;
             this.setStyle({fillOpacity:opacity, fillColor:fill_color});
         },
-        
+
         error: function(level) {
             this.iserror = level;
             this.update();
@@ -66,7 +66,7 @@ $(document).ready(function(){
         let y = Math.floor(n * ( 1 - ( Math.log( Math.tan(lat_r) + 1/Math.cos(lat_r) ) / Math.PI ) ) / 2);
         return [x, y];
     }
-    
+
     function TileIdFromLatLng(latlon) {
         let n = Math.pow(2,14);
         let x = Math.floor(n * (latlon.lng + 180 ) / 360);
@@ -105,12 +105,12 @@ $(document).ready(function(){
         console.log(selected_tiles);
         if (mymap.getZoom()<10) {
             // Remove tiles
-            console.log("  ->clear tiles");        
+            console.log("  ->clear tiles");
             displayed_tiles.clear();
             tilesLayerGroup.clearLayers();
         } else {
             // display tiles
-            console.log("  ->display tiles");        
+            console.log("  ->display tiles");
             let bounds = mymap.getBounds();
             let t1 = TileFromCoord(bounds.getNorth(), bounds.getWest())
             let t2 = TileFromCoord(bounds.getSouth(), bounds.getEast())
@@ -219,7 +219,7 @@ $(document).ready(function(){
             }
         });
     };
-    
+
     { // MODE
         $('a.dropdown-item').on('click', function(e) {
             if ($(this).data('mode') != $('#mode-selection').data('mode')) {
@@ -237,8 +237,10 @@ $(document).ready(function(){
             $('#mode-selection').data('mode', lmd);
         }
     }
-    
-    
+
+
+
+
 
     function start_route(timeout_id) {
         if (timeout_id != active_timeout) return;
@@ -287,7 +289,7 @@ $(document).ready(function(){
         });
     }
     function request_route() {
-        
+
         if (timeoutID) {
             window.clearTimeout(timeoutID);
             timeoutID = false;
@@ -444,17 +446,40 @@ $(document).ready(function(){
                     bounds = boundsFromTileId(selected_tiles[i]);
                 }
 
-        updateMapTiles();
             }
+            updateMapTiles();
         }
-
         mymap.fitBounds(bounds);
         request_route();
     }
 
     {
         var saved_traces =[];
-        
+
+        { // ROUTES localstorage
+            let trace_count = parseInt(localStorage.getItem("trace_count") || "0");
+            for (let trace_val=0; trace_val<trace_count; trace_val++) {
+                let coords = localStorage.getItem('trace'+trace_val+'_coords').split(",").map(x => x.split(" "));
+                let rp = L.polyline(coords, {color: 'aqua', opacity:0.8}).addTo(mymap);
+                saved_traces.push(rp);
+                let name = localStorage.getItem('trace'+trace_val+'_name');
+                let dist = localStorage.getItem('trace'+trace_val+'_length');
+                $('<a href="#" class="list-group-item list-group-item-action"><span>'+name+'</span><span class="badge badge-light" style="float:right;">'+dist+'</span></a>').appendTo('#traces-list')
+            }
+        }
+
+        function refresh_localstorage_traces() {
+            count = $('div#traces-list').length;
+            localStorage.setItem("trace_count", 0);
+            $('div#traces-list').children().each(function(index){
+                console.log(index)
+                localStorage.setItem('trace'+index+'_name', $(this).find('span:first').text());
+                localStorage.setItem('trace'+index+'_length', $(this).find('span.badge').text());
+                localStorage.setItem('trace'+index+'_coords', saved_traces[index].getLatLngs().map(x => x.lat+" "+x.lng));
+                localStorage.setItem("trace_count", index+1);
+            });
+        }
+
         $('button#addTrace').on("click", function(e) {
             if ($('#show-tiles').is(':checked')) {
                 for (const latlng of routePolyline.getLatLngs()) {
@@ -474,8 +499,9 @@ $(document).ready(function(){
             let dist = $("p#length").text();
             $('<a href="#" class="list-group-item list-group-item-action"><span>'+name+'</span><span class="badge badge-light" style="float:right;">'+dist+'</span></a>').appendTo('#traces-list')
             $('button#addTrace').prop("disabled", true);
+            refresh_localstorage_traces();
         });
-        
+
         $('button#addTrace').prop("disabled", true);
 
         $('div#traces-list').on('click', 'a', function(e) {
@@ -495,8 +521,9 @@ $(document).ready(function(){
                     }
                     $('div#traces-list>.active>span.badge').text((parseFloat($('div#traces-list>.active>span.badge').text()) + parseFloat($(this).find("span.badge").text())).toFixed(2)+" km")
                     saved_traces[pos].remove();
-                    saved_traces.splice(pos, 1);                    
+                    saved_traces.splice(pos, 1);
                     $(this).remove();
+                    refresh_localstorage_traces();
                 }
             } else {
                 if (previous_pos>=0) {
@@ -504,7 +531,7 @@ $(document).ready(function(){
                     $('div#traces-list>.active').removeClass('active');
                 }
                 if (pos != previous_pos) {
-                    $(this).addClass('active'); 
+                    $(this).addClass('active');
                     saved_traces[pos].setStyle({color:'blue'}).bringToFront();
                     $('#trace-button-group>button').prop("disabled", false);
                 } else {
@@ -520,9 +547,10 @@ $(document).ready(function(){
                 saved_traces[pos].remove();
                 saved_traces.splice(pos, 1);
                 $('div#traces-list>.active').remove();
+                refresh_localstorage_traces();
             }
         });
-        
+
         $('#merge-trace').on('click', function(e) {
             if ($(this).hasClass('btn-primary')) {
                 $(this).removeClass('btn-primary');
@@ -530,22 +558,23 @@ $(document).ready(function(){
                 $(this).addClass('btn-primary');
             }
         });
-        
+
         $('#rename-trace').on('click', function(e) {
             let name = $('div#traces-list>.active>span:first').text();
             let new_name = prompt("Nom", name);
             if (new_name != null) {
                 $('div#traces-list>.active>span:first').text(new_name);
+                refresh_localstorage_traces();
             }
         });
-        
+
         $('#togpx-trace').on('click', function(e) {
             let pos = $('div#traces-list>.active').index();
             let name = $('div#traces-list>.active>span:first').text();
             let trace = saved_traces[pos]
             console.log("togpx-trace.click()")
             let latlons = trace.getLatLngs().map(x => x.lat+","+x.lng);
-            
+
             $.ajax({
                 type: "POST",
                 dataType: "json",
@@ -562,9 +591,9 @@ $(document).ready(function(){
                 }
             });
         });
-   
+
     }
-    
+
     $('#export-tiles').on('click', function(e) {
         name = ""
         $.ajax({
@@ -583,7 +612,7 @@ $(document).ready(function(){
             }
         });
     });
-    
+
 
 
 });

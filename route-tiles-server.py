@@ -14,7 +14,7 @@ from pathlib import Path
 from pprint import pprint
 from urllib import parse
 
-from tilesrouter import RouteServer, computeMissingKml, LatLonsToGpx, TilesToKml
+from tilesrouter import RouteServer, compute_missing_kml, latlons_to_gpx, tiles_to_kml
 
 PORT = 8000
 
@@ -89,11 +89,11 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
 
         answer = {'sessionId': self.sessionId}
 
-        router, message, info = self.session.routeServer.startRoute(mode, start, end, tiles)
+        router, message, info = self.session.routeServer.start_route(mode, start, end, tiles)
 
         if router:
             answer['status'] = "OK"
-            if self.session.routeServer.isComplete:
+            if self.session.routeServer.is_complete:
                 answer['state'] = 'complete'
             else:
                 answer['state'] = 'searching...'
@@ -116,7 +116,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         answer = {'status': "OK"}
-        if self.session.routeServer.isComplete:
+        if self.session.routeServer.is_complete:
             answer['state'] = 'complete'
         else:
             answer['state'] = 'searching...'
@@ -148,7 +148,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             answer = {'status': "Fail", 'message': "wrong filename"}
         elif not self.session.routeServer.myRouter:
             answer = {'status': "Fail", 'message': "No route"}
-        elif self.session.routeServer.myRouter.generateGpx(
+        elif self.session.routeServer.myRouter.generate_gpx(
                 os.path.join(self.directory, 'gpx', gpx_file_name), gpx_name):
             answer = {'status': "OK", 'path': 'gpx/' + gpx_file_name}
         else:
@@ -176,7 +176,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             kml_file_name += ".kml"
         if "\\" in kml_file_name or "/" in kml_file_name:
             answer = {'status': "Fail", 'message': "wrong filename"}
-        elif TilesToKml(tiles, os.path.join(self.directory, 'gpx', kml_file_name), file_name):
+        elif tiles_to_kml(tiles, os.path.join(self.directory, 'gpx', kml_file_name), file_name):
             answer = {'status': "OK", 'path': 'gpx/' + kml_file_name}
         else:
             answer = {'status': "Fail", 'message': "error generating KML"}
@@ -207,7 +207,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             self._set_headers()
             r, info = self.deal_post_data()
             if r:
-                tiles = computeMissingKml(r)
+                tiles = compute_missing_kml(r)
                 if tiles:
                     self.wfile.write(json.dumps({'status': 'OK', 'sessionId': self.sessionId, 'tiles': tiles['tiles'],
                                                  'maxSquare': tiles['coord']}).encode('utf-8'))
@@ -234,7 +234,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
                 answer = {'status': "Fail", 'message': "wrong filename"}
             elif not coords:
                 answer = {'status': "Fail", 'message': "No route"}
-            elif LatLonsToGpx(coords, os.path.join(self.directory, 'gpx', gpx_file_name), gpx_name):
+            elif latlons_to_gpx(coords, os.path.join(self.directory, 'gpx', gpx_file_name), gpx_name):
                 answer = {'status': "OK", 'path': 'gpx/' + gpx_file_name}
             else:
                 answer = {'status': "Fail", 'message': "error generating GPX"}
@@ -277,7 +277,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             else:
                 out.write(pre_line)
                 pre_line = line
-        return None, "Unexpect Ends of data."
+        return None, "Unexpected ends of data."
 
     def get_session(self):
 
@@ -297,10 +297,10 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
 
 
 # Create gpx folder is not exists for gpx export
-Path(os.path.join(os.path.dirname(__file__), 'static', 'gpx')).mkdir(exist_ok=True)
-Path(os.path.join(os.path.dirname(__file__), 'debug')).mkdir(exist_ok=True)
+Path(__file__).parent.joinpath('static', 'gpx').mkdir(exist_ok=True)
+Path(__file__).parent.joinpath('debug').mkdir(exist_ok=True)
 
-handler_class = partial(RouteHttpServer, directory=os.path.join(os.path.dirname(__file__), 'static'))
+handler_class = partial(RouteHttpServer, directory=str(Path(__file__).parent.joinpath('static')))
 
 with socketserver.TCPServer(("", PORT), handler_class) as httpd:
     print("serving at port", PORT)

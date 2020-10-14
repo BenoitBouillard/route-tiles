@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import os
 import threading
 from pathlib import Path
 
@@ -10,11 +9,11 @@ import gpxpy.gpx
 from fastkml import kml, styles
 
 from pyroutelib3 import Datastore
-from tile import Tile, CoordDict, coordFromTile
+from tile import Tile, CoordDict, coord_from_tile
 from utils import *
 
 
-def LatLonsToGpx(latlons, filename, name):
+def latlons_to_gpx(latlons, filename, name):
     gpx = gpxpy.gpx.GPX()
 
     # Create first track in our GPX:
@@ -34,7 +33,7 @@ def LatLonsToGpx(latlons, filename, name):
     return True
 
 
-def TilesToKml(tiles, filename, name):
+def tiles_to_kml(tiles, filename, name):
     # Create the root KML object
     k = kml.KML()
     ns = '{http://www.opengis.net/kml/2.2}'
@@ -54,7 +53,7 @@ def TilesToKml(tiles, filename, name):
     for tile_id in tiles:
         tile = Tile(tile_id)
         p = kml.Placemark(ns, tile_id, styleUrl="#s")
-        p.geometry = tile.lineStringLonLat
+        p.geometry = tile.line_string_lon_lat
         f.append(p)
 
     print(k.to_string(prettyprint=True))
@@ -66,21 +65,37 @@ def TilesToKml(tiles, filename, name):
 class Route(object):
     def __init__(self, route, router):
         self.route = route
-        self.routeLatLons = list(map(router.nodeLatLon, route))
-        self.computeLength(self.routeLatLons)
-        self.length = self.computeLength(self.routeLatLons)
+        self.routeLatLons = list(map(router.node_lat_lon, route))
+        self.compute_length(self.routeLatLons)
+        self.length = self.compute_length(self.routeLatLons)
 
     @staticmethod
-    def computeLength(routeLatLons):
+    def compute_length(route_latlons):
         length = 0
-        previous = routeLatLons[0]
-        for latlon in routeLatLons[1:]:
+        previous = route_latlons[0]
+        for latlon in route_latlons[1:]:
             length += distance(previous, latlon)
             previous = latlon
         return length
 
-    def toGpx(self, filename, name):
-        return LatLonsToGpx(self.routeLatLons, filename, name)
+    def to_gpx(self, filename, name):
+        return latlons_to_gpx(self.routeLatLons, filename, name)
+
+
+def debug_export_tiles(tiles):
+    with open('debug/tiles.js', 'w') as hf:
+        hf.write("var tiles = [\n")
+        for t in tiles:
+            hf.write(" [ \n")
+            for lat, lon in t.edges:
+                hf.write("[{},{}],\n".format(lat, lon))
+            hf.write("  ],\n")
+        hf.write("];\n")
+        hf.write("var nodes = [\n")
+        for t in tiles:
+            for e in t.entryNodeId:
+                hf.write("[{},{}],\n".format(*e.latlon))
+        hf.write("];\n")
 
 
 class MyRouter(object):
@@ -95,35 +110,20 @@ class MyRouter(object):
         self.tiles = tiles
         self.progress = 100.0
 
-        def _exportTiles(tiles):
-            with open('debug/tiles.js', 'w') as hf:
-                hf.write("var tiles = [\n")
-                for t in tiles:
-                    hf.write(" [ \n")
-                    for lat, lon in t.edges:
-                        hf.write("[{},{}],\n".format(lat, lon))
-                    hf.write("  ],\n")
-                hf.write("];\n")
-                hf.write("var nodes = [\n")
-                for t in tiles:
-                    for e in t.entryNodeId:
-                        hf.write("[{},{}],\n".format(*e.latlon))
-                hf.write("];\n")
-
-        _exportTiles(tiles)
+        debug_export_tiles(tiles)
 
     def abort(self):
         self._exit = True
 
     @property
-    def isComplete(self):
+    def is_complete(self):
         return self._complete
 
     def run(self):
         self.min_length = None
         self._min_route = None
 
-        status, r = self.doRouteWithCrossingZone(self.start.nodeId, self.end.nodeId, frozenset(self.tiles))
+        status, r = self.do_route_with_crossing_zone(self.start.nodeId, self.end.nodeId, frozenset(self.tiles))
         if status != "success":
             route = None
         else:
@@ -147,76 +147,76 @@ class MyRouter(object):
             self._min_route = Route([int(i) for i in self._min_route.split(",")], router=self.router)
         return self._min_route
 
-    def doRouteWithCrossingZone(self, start, end, zones):
+    def do_route_with_crossing_zone(self, start, end, zones):
         """Do the routing"""
         _closed = {(start, frozenset(zones))}
         _queue = []
         _closeNode = True
         _end = end
-        minDists = {}
-        minDistsFast = {}
+        min_dists = {}
+        min_dists_fast = {}
 
-        def _exportQueue(nextItem=None):
+        def _export_queue(new_item=None):
             nonlocal _closed, _queue, _closeNode
             with open('debug/routes.js', 'w') as hf:
                 hf.write("var routes = [\n")
-                if nextItem:
-                    route = [int(i) for i in nextItem["nodes"].split(",")]
+                if new_item:
+                    route = [int(i) for i in new_item["nodes"].split(",")]
                     hf.write(" { \n")
-                    hf.write(
-                        "  'name':'{0}-{1:.3f}',\n".format(len(nextItem['notVisitedZones']), nextItem['heuristicCost']))
-                    hf.write("  'length':{},\n".format(nextItem['cost']))
+                    hf.write("  'name':'{0}-{1:.3f}',\n".format(len(new_item['not_visited_zones']),
+                                                                new_item['heuristic_cost']))
+                    hf.write("  'length':{},\n".format(new_item['cost']))
                     hf.write("  'route':[\n")
-                    for lat, lon in list(map(self.router.nodeLatLon, route)):
+                    for lat, lon in list(map(self.router.node_lat_lon, route)):
                         hf.write("[{},{}],\n".format(lat, lon))
                     hf.write("  ],\n")
                     hf.write("  },\n")
                 for q in _queue:
                     route = [int(i) for i in q["nodes"].split(",")]
                     hf.write(" { \n")
-                    hf.write("  'name':'{0}-{1:.3f}',\n".format(len(q['notVisitedZones']), q['heuristicCost']))
+                    hf.write("  'name':'{0}-{1:.3f}',\n".format(len(q['not_visited_zones']), q['heuristic_cost']))
                     hf.write("  'length':{},\n".format(q['cost']))
                     hf.write("  'route':[\n")
-                    for lat, lon in list(map(self.router.nodeLatLon, route)):
+                    for lat, lon in list(map(self.router.node_lat_lon, route)):
                         hf.write("[{},{}],\n".format(lat, lon))
                     hf.write("  ],\n")
                     hf.write("  },\n")
                 hf.write("];\n")
 
         # Define function that addes to the queue
-        def _addToQueue(start, notVisitedZones, end, queueSoFar, weight=1):
+        def _add_to_queue(item_start, item_not_visited_zones, item_end, queue_so_far, item_weight=1):
             """Add another potential route to the queue"""
-            nonlocal _closed, _queue, _closeNode, minDists, minDistsFast
+            nonlocal _closed, _queue, _closeNode, min_dists, min_dists_fast
 
             # Assume start and end nodes have positions
-            if end not in self.router.rnodes or start not in self.router.rnodes:
+            if item_end not in self.router.rnodes or item_start not in self.router.rnodes:
                 return
 
             # Get data around end node
-            self.router.getArea(self.router.rnodes[end][0], self.router.rnodes[end][1])
+            self.router.get_area(self.router.rnodes[item_end][0], self.router.rnodes[item_end][1])
 
             # Ignore if route is not traversible
-            if weight == 0:
+            if item_weight == 0:
                 return
 
             # Do not turn around at a node (don't do this: a-b-a)
             # if len(queueSoFar["nodes"].split(",")) >= 2 and queueSoFar["nodes"].split(",")[-2] == str(end):
             #    return
 
-            edgeCost = distance(self.router.rnodes[start], self.router.rnodes[end]) / weight
-            totalCost = queueSoFar["cost"] + edgeCost
+            edge_cost = distance(self.router.rnodes[item_start], self.router.rnodes[item_end]) / item_weight
+            total_cost = queue_so_far["cost"] + edge_cost
 
-            def _minDist(start, tiles, end, store=True, fast=False):
-                nonlocal minDists, minDistsFast
+            def _min_dist(start_loc, tiles, end_loc, store=True, fast=False):
+                nonlocal min_dists, min_dists_fast
                 if self._exit:
                     return 0
-                md = minDistsFast if fast else minDists
+                md = min_dists_fast if fast else min_dists
                 # compute flyby min distance by visiting all tiles
                 if len(tiles) == 0:
-                    return distance(start, end)
+                    return distance(start_loc, end_loc)
 
-                if (start, frozenset(tiles), end) in md:
-                    return md[(start, frozenset(tiles), end)]
+                if (start_loc, frozenset(tiles), end_loc) in md:
+                    return md[(start_loc, frozenset(tiles), end_loc)]
 
                 min_dist = None
                 for t in tiles:
@@ -226,76 +226,77 @@ class MyRouter(object):
                     else:
                         ep = [n.latlon for n in t.entryNodeId]
                     for entry in ep:
-                        pa = distance(start, entry)
-                        pb = _minDist(entry, remain_tiles, end, fast=fast)
+                        pa = distance(start_loc, entry)
+                        pb = _min_dist(entry, remain_tiles, end_loc, fast=fast)
                         if min_dist is None or pa + pb < min_dist:
                             min_dist = pa + pb
                 if store:
-                    md[(start, frozenset(tiles), end)] = min_dist
+                    md[(start_loc, frozenset(tiles), end_loc)] = min_dist
                 return min_dist
 
-            # t = time.time() if len(minDists)==0 else None
-            hc = _minDist(self.router.rnodes[end], notVisitedZones, self.router.rnodes[_end], False,
-                          len(notVisitedZones) > 5)
+            # t = time.time() if len(min_dists)==0 else None
+            hc = _min_dist(self.router.rnodes[item_end], item_not_visited_zones, self.router.rnodes[_end], False,
+                           len(item_not_visited_zones) > 5)
             # if t:
             # print("min dist time:{}".format(time.time()-t))
-            heuristicCost = totalCost + hc
+            heuristic_cost = total_cost + hc
 
-            allNodes = queueSoFar["nodes"] + "," + str(end)
+            all_nodes = queue_so_far["nodes"] + "," + str(item_end)
 
             # Check if path queueSoFar+end is not forbidden
             for i in self.router.forbiddenMoves:
-                if i in allNodes:
+                if i in all_nodes:
                     _closeNode = False
                     return
 
             # Check if we have a way to 'end' node
-            endQueueItem = None
+            end_queue_item = None
             for i in _queue:
-                if (i["end"], i["notVisitedZones"]) == (end, notVisitedZones):
-                    endQueueItem = i
+                if (i["end"], i["not_visited_zones"]) == (item_end, item_not_visited_zones):
+                    end_queue_item = i
                     break
 
-            # If we do, and known totalCost to end is lower we can ignore the queueSoFar path
-            if endQueueItem and endQueueItem["cost"] < totalCost:
+            # If we do, and known total_cost to end is lower we can ignore the queueSoFar path
+            if end_queue_item and end_queue_item["cost"] < total_cost:
                 return
 
-            # If the queued way to end has higher total cost, remove it (and add the queueSoFar scenario, as it's cheaper)
-            elif endQueueItem:
-                _queue.remove(endQueueItem)
+            # If the queued way to end has higher total cost, remove it
+            # (and add the queueSoFar scenario, as it's cheaper)
+            elif end_queue_item:
+                _queue.remove(end_queue_item)
 
             # Check against mandatory turns
-            forceNextNodes = None
-            if queueSoFar.get("mandatoryNodes", None):
-                forceNextNodes = queueSoFar["mandatoryNodes"]
+            force_next_nodes = None
+            if queue_so_far.get("mandatoryNodes", None):
+                force_next_nodes = queue_so_far["mandatoryNodes"]
 
             else:
                 for activationNodes, nextNodes in self.router.mandatoryMoves.items():
-                    if allNodes.endswith(activationNodes):
+                    if all_nodes.endswith(activationNodes):
                         _closeNode = False
-                        forceNextNodes = nextNodes.copy()
+                        force_next_nodes = nextNodes.copy()
                         break
 
             # Create a hash for all the route's attributes
-            queueItem = {
-                "cost": totalCost,
-                "heuristicCost": heuristicCost,
-                "nodes": allNodes,
-                "end": end,
-                "notVisitedZones": notVisitedZones,
-                "mandatoryNodes": forceNextNodes
+            queue_item = {
+                "cost": total_cost,
+                "heuristic_cost": heuristic_cost,
+                "nodes": all_nodes,
+                "end": item_end,
+                "not_visited_zones": item_not_visited_zones,
+                "mandatoryNodes": force_next_nodes
             }
 
             # Try to insert, keeping the queue ordered by decreasing heuristic cost
-            count = 0
+            position = 0
             for test in _queue:
-                if test["heuristicCost"] > queueItem["heuristicCost"]:
-                    _queue.insert(count, queueItem)
+                if test["heuristic_cost"] > queue_item["heuristic_cost"]:
+                    _queue.insert(position, queue_item)
                     break
-                count += 1
+                position += 1
 
             else:
-                _queue.append(queueItem)
+                _queue.append(queue_item)
 
         # Start by queueing all outbound links from the start node
         if start not in self.router.routing:
@@ -305,76 +306,76 @@ class MyRouter(object):
             return "no_route", []
 
         else:
-            notVisitedZones = frozenset(zones)
+            not_visited_zones = frozenset(zones)
             for linkedNode in list(self.router.routing[start]):
                 weight = self.router.routing[start][linkedNode]
-                _addToQueue(start, notVisitedZones, linkedNode, {"cost": 0, "nodes": str(start)}, weight)
+                _add_to_queue(start, not_visited_zones, linkedNode, {"cost": 0, "nodes": str(start)}, weight)
 
         # Limit for how long it will search
         count = 0
         while count < 1000000 and not self._exit:
             count += 1
             _closeNode = True
-            # _exportQueue()
+            # _export_queue()
 
             # Pop first item from queue for routing. If queue it's empty - it means no route exists
             if len(_queue) > 0:
-                nextItem = _queue.pop(0)
+                next_item = _queue.pop(0)
             else:
                 return "no_route", []
 
-            consideredNode = nextItem["end"]
-            notVisitedZones = nextItem["notVisitedZones"]
+            considered_node = next_item["end"]
+            not_visited_zones = next_item["not_visited_zones"]
 
-            if not self.min_length or nextItem['cost'] > self.min_length:
-                self.min_length = nextItem['cost']
-                self._min_route = nextItem['nodes']
-                self.progress = 100.0 * nextItem['cost'] / nextItem['heuristicCost']
-                print_progress_bar(nextItem['cost'], nextItem['heuristicCost'])
+            if not self.min_length or next_item['cost'] > self.min_length:
+                self.min_length = next_item['cost']
+                self._min_route = next_item['nodes']
+                self.progress = 100.0 * next_item['cost'] / next_item['heuristic_cost']
+                print_progress_bar(next_item['cost'], next_item['heuristic_cost'])
 
-            for zone in notVisitedZones:
-                if consideredNode in zone.entryNodesId:
-                    notVisitedZones = notVisitedZones - {zone}
+            for zone in not_visited_zones:
+                if considered_node in zone.entry_nodes_id:
+                    not_visited_zones = not_visited_zones - {zone}
 
             # If we already visited the node, ignore it
-            if (consideredNode, notVisitedZones) in _closed:
+            if (considered_node, not_visited_zones) in _closed:
                 continue
 
             # Found the end node - success
-            if consideredNode == end:
-                if len(notVisitedZones) == 0:
-                    _exportQueue(nextItem)
-                    return "success", [int(i) for i in nextItem["nodes"].split(",")]
+            if considered_node == end:
+                if len(not_visited_zones) == 0:
+                    _export_queue(next_item)
+                    return "success", [int(i) for i in next_item["nodes"].split(",")]
 
             # Check if we preform a mandatory turn
-            if nextItem["mandatoryNodes"]:
+            if next_item["mandatoryNodes"]:
                 _closeNode = False
-                nextNode = nextItem["mandatoryNodes"].pop(0)
-                if consideredNode in self.router.routing and nextNode in self.router.routing.get(consideredNode,
-                                                                                                 {}).keys():
-                    _addToQueue(consideredNode, notVisitedZones, nextNode, nextItem,
-                                self.router.routing[consideredNode][nextNode])
+                next_node = next_item["mandatoryNodes"].pop(0)
+                if considered_node in self.router.routing and \
+                        next_node in self.router.routing.get(considered_node, {}).keys():
+                    _add_to_queue(considered_node, not_visited_zones, next_node, next_item,
+                                  self.router.routing[considered_node][next_node])
 
             # If no, add all possible nodes from x to queue
-            elif consideredNode in self.router.routing:
-                for nextNode, weight in list(self.router.routing[consideredNode].items()):
-                    if (nextNode, notVisitedZones) not in _closed:
-                        _addToQueue(consideredNode, notVisitedZones, nextNode, nextItem, weight)
+            elif considered_node in self.router.routing:
+                for next_node, weight in list(self.router.routing[considered_node].items()):
+                    if (next_node, not_visited_zones) not in _closed:
+                        _add_to_queue(considered_node, not_visited_zones, next_node, next_item, weight)
 
             if _closeNode:
-                _closed.add((consideredNode, notVisitedZones))
+                _closed.add((considered_node, not_visited_zones))
 
         else:
             return "gave_up", []
 
-    def generateGpx(self, fileName, gpxName):
+    def generate_gpx(self, file_name, gpx_name):
         if self.min_route:
-            return self.min_route.toGpx(fileName, gpxName)
+            return self.min_route.to_gpx(file_name, gpx_name)
         else:
             return False
 
 
-def computeMissingKml(file):
+def compute_missing_kml(file):
     k = kml.KML()
     doc = file.read()
     try:
@@ -404,12 +405,12 @@ def computeMissingKml(file):
     max_square_x = 0
     max_square_y = 0
 
-    def is_square(x, y, m):
-        if x + m > xmax or y + m > ymax:
+    def is_square(pos_x, pos_y, m):
+        if pos_x + m > xmax or pos_y + m > ymax:
             return False
         for dx in range(m):
             for dy in range(m):
-                uid = "{}_{}".format(x + dx, y + dy)
+                uid = "{}_{}".format(pos_x + dx, pos_y + dy)
                 if uid in not_found_tiles:
                     return False
         return True
@@ -425,8 +426,8 @@ def computeMissingKml(file):
                 else:
                     break  # while break
 
-    max_square_coord = (coordFromTile(max_square_x, max_square_y),
-                        coordFromTile(max_square_x + max_square, max_square_y + max_square))
+    max_square_coord = (coord_from_tile(max_square_x, max_square_y),
+                        coord_from_tile(max_square_x + max_square, max_square_y + max_square))
     print("Max square:{} at {},{}".format(max_square, max_square_x, max_square_y))
     return {"tiles": not_found_tiles, "max": max_square, "coord": max_square_coord}
 
@@ -435,14 +436,14 @@ class RouteServer(object):
     def __init__(self):
         self.stored_tiles = {}
         self.router = None
-        self.myRouter = False
+        self.myRouter = None
         self.mode = None
         self.thread = None
 
-    def startRoute(self, mode, startLoc, endLoc, tiles, thread=True):
+    def start_route(self, mode, start_loc, end_loc, tiles, thread=True):
         print(tiles)
 
-        if thread and self.myRouter and not self.myRouter.isComplete:
+        if thread and self.myRouter and not self.myRouter.is_complete:
             print("Abord previous route...")
             self.myRouter.abort()
             self.thread.join()
@@ -450,20 +451,20 @@ class RouteServer(object):
         if mode != self.mode:
             self.mode = mode
             self.stored_tiles = {}
-            self.router = Datastore(mode, cache_dir=os.path.join(Path.home(), '.tilescache'))
-        coordDict = CoordDict(self.router)
-        startPoint = coordDict.get(*startLoc)
-        endPoint = coordDict.get(*endLoc)
-        selectedTiles = []
+            self.router = Datastore(mode, cache_dir=str(Path.home().joinpath('.tilescache')))
+        coord_dict = CoordDict(self.router)
+        start_point = coord_dict.get(*start_loc)
+        end_point = coord_dict.get(*end_loc)
+        selected_tiles = []
         for t in tiles:
             if t not in self.stored_tiles:
                 self.stored_tiles[t] = Tile(t)
-            selectedTiles.append(self.stored_tiles[t])
-            self.stored_tiles[t].getEntryPoints(self.router)
+            selected_tiles.append(self.stored_tiles[t])
+            self.stored_tiles[t].get_entry_points(self.router)
             if not self.stored_tiles[t].entryNodeId:
                 return False, "No entry point for tiles", [t]
 
-        self.myRouter = MyRouter(self.router, startPoint, endPoint, selectedTiles)
+        self.myRouter = MyRouter(self.router, start_point, end_point, selected_tiles)
         if thread:
             self.thread = threading.Thread(target=self.myRouter.run)
             # Background thread will finish with the main program
@@ -474,7 +475,7 @@ class RouteServer(object):
         else:
             self.myRouter.run()
 
-        return self.myRouter, self.isComplete, self.route
+        return self.myRouter, self.is_complete, self.route
 
     @property
     def progress(self):
@@ -485,31 +486,43 @@ class RouteServer(object):
         return self.myRouter.min_route
 
     @property
-    def isComplete(self):
-        return self.myRouter.isComplete
+    def is_complete(self):
+        return self.myRouter.is_complete
 
 
 if __name__ == '__main__':
     # import time
-    TilesToKml(['8251_5613', '8251_5614', '8249_5615'], "debug/test.kml", "test")
+    tiles_to_kml(['8251_5613', '8251_5614', '8249_5615'], "debug/test.kml", "test")
     # rs = RouteServer()
     # print(computeMissingKml(open("missing_tiles.kml", "rb")))
-    # print(rs.startRoute([49.250775603162886,1.4452171325683596], [49.250775603162886,1.4452171325683596], [205], thread=False).min_route.getCoords(rs.myRouter.router))
-    # print(rs.startRoute([49.250775603162886,1.4452171325683596], [49.250775603162886,1.4452171325683596], ["8257_5607", "8257_5610"], thread=False).min_route.routeLatLons)
+    # print(rs.start_route([49.250775603162886,1.4452171325683596],
+    #                     [49.250775603162886,1.4452171325683596],
+    #                     [205], thread=False).min_route.getCoords(rs.myRouter.router))
+    # print(rs.start_route([49.250775603162886,1.4452171325683596],
+    #                     [49.250775603162886,1.4452171325683596],
+    #                     ["8257_5607", "8257_5610"], thread=False).min_route.routeLatLons)
     # pprint(minDists)
-    # #print(rs.startRoute([49.250775603162886,1.4452171325683596], [49.250775603162886,1.4452171325683596], [205,206], thread=False).min_route.getCoords(rs.myRouter.router))
-    # print(rs.startRoute([49.250775603162886,1.4452171325683596], [49.250775603162886,1.4452171325683596], [-1], thread=False).min_route.getCoords(rs.myRouter.router))
+    # #print(rs.start_route([49.250775603162886,1.4452171325683596],
+    #                      [49.250775603162886,1.4452171325683596],
+    #                      [205,206], thread=False).min_route.getCoords(rs.myRouter.router))
+    # print(rs.start_route([49.250775603162886,1.4452171325683596],
+    #                     [49.250775603162886,1.4452171325683596],
+    #                     [-1], thread=False).min_route.getCoords(rs.myRouter.router))
 
     # start_time = time.time()
-    # rs.startRoute([49.01467940545091,1.389772879538316], [49.00386989926282,1.3952660758713222], [546,580], thread=False)
+    # rs.start_route([49.01467940545091,1.389772879538316],
+    #               [49.00386989926282,1.3952660758713222], [546,580], thread=False)
     # compute_time = time.time()-start_time
     # print("compute time:", compute_time)
     # start_time = time.time()
-    # print(rs.startRoute([49.01467940545091,1.389772879538316], [49.00386989926282,1.3952660758713222], [546,580], thread=False).min_route.getCoords(rs.myRouter.router))
+    # print(rs.start_route([49.01467940545091,1.389772879538316],
+    #                     [49.00386989926282,1.3952660758713222],
+    #                     [546,580], thread=False).min_route.getCoords(rs.myRouter.router))
     # compute_time = time.time()-start_time
     # print("compute time:", compute_time)
 
-    # myRouter = rs.startRoute([49.01467940545091,1.389772879538316], [49.00386989926282,1.3952660758713222], [546,580], thread=True)
+    # myRouter = rs.start_route([49.01467940545091,1.389772879538316],
+    #                          [49.00386989926282,1.3952660758713222], [546,580], thread=True)
     # while not myRouter.isComplete:
     # pass
     # print(myRouter.min_route.getCoords(rs.myRouter.router))

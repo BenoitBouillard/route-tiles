@@ -53,7 +53,7 @@ __maintainer__ = "Mikolaj Kuranowski"
 __email__ = "mkuranowski@gmail.com"
 
 
-def weightPrimaryRoadcycle(t):
+def weight_primary_roadcycle(t):
     w = int(t.get("maxspeed", "80"))
     if w <= 50:
         return 1
@@ -64,7 +64,8 @@ def weightPrimaryRoadcycle(t):
     return 0.25
 
 
-def filterAsphalt(t):
+def filter_asphalt(t):
+    # Allow asphalt path and zebra crossing
     if t.get("surface") in ['asphalt']:
         return 1
     if t.get("footway") in ['crossing']:
@@ -84,12 +85,12 @@ TYPES = {
                     "unclassified": 1, "residential": 0.8, "track": 0.3, "service": 0.9},
         "access": ["access", "vehicle", "motor_vehicle", "psv", "bus"]},
     "roadcycle": {
-        "weights": {"primary": weightPrimaryRoadcycle, "secondary": 1, "tertiary": 1,
-                    "unclassified": 1, "residential": 1, "living_street": 1, "cycleway": 0.9, "footway": filterAsphalt,
-                    "path": filterAsphalt},
+        "weights": {"primary": weight_primary_roadcycle, "secondary": 1, "tertiary": 1,
+                    "unclassified": 0.9, "residential": 0.9, "living_street": 0.9, "cycleway": 0.9,
+                    "footway": filter_asphalt, "path": filter_asphalt},
         "access": ["access", "vehicle", "bicycle"]},
     "cycle": {
-        "weights": {"trunk": 0.05, "primary": weightPrimaryRoadcycle, "secondary": 0.9, "tertiary": 1,
+        "weights": {"trunk": 0.05, "primary": weight_primary_roadcycle, "secondary": 0.9, "tertiary": 1,
                     "unclassified": 1, "cycleway": 2, "residential": 2.5, "living_street": 2, "track": 1,
                     "service": 1, "bridleway": 0.8, "footway": 0.8, "steps": 0.5, "path": 1},
         "access": ["access", "vehicle", "bicycle"]},
@@ -118,7 +119,7 @@ TYPES = {
 ZOOM_LEVEL = 15
 
 
-def _whichTile(lat, lon, zoom):
+def _which_tile(lat, lon, zoom):
     """Determine in which tile the given lat, lon lays"""
     n = 2 ** zoom
     x = n * ((lon + 180) / 360)
@@ -126,12 +127,15 @@ def _whichTile(lat, lon, zoom):
     return int(x), int(y), int(zoom)
 
 
-def _tileBoundary(x, y, z):
+def _tile_boundary(x, y, z):
     """Return (left, bottom, right, top) of bbox of given tile"""
     n = 2 ** z
-    mercToLat = lambda v: math.degrees(math.atan(math.sinh(v)))
-    top = mercToLat(math.pi * (1 - 2 * (y * (1 / n))))
-    bottom = mercToLat(math.pi * (1 - 2 * ((y + 1) * (1 / n))))
+
+    def merc_to_lat(v):
+        return math.degrees(math.atan(math.sinh(v)))
+
+    top = merc_to_lat(math.pi * (1 - 2 * (y * (1 / n))))
+    bottom = merc_to_lat(math.pi * (1 - 2 * ((y + 1) * (1 / n))))
     left = x * (360 / n) - 180
     right = left + (360 / n)
     return left, bottom, right, top
@@ -143,7 +147,7 @@ def myurlretrieve(url, filename=None, reporthook=None, data=None):
 
 
 def attributes(element):
-    """Get OSM element atttributes and do some common type conversion"""
+    """Get OSM element attributes and do some common type conversion"""
     result = {}
     for k, v in element.attrib.items():
         if k == "uid":
@@ -171,8 +175,8 @@ def attributes(element):
 
 
 def equivalent(tag):
-    """Simplifies a bunch of tags to nearly-equivalent ones"""
-    equivalent = {
+    """Simplifies a bunch of tags to nearly-equivalent_way ones"""
+    equivalent_way = {
         "motorway_link": "motorway",
         "trunk_link": "trunk",
         "primary_link": "primary",
@@ -182,7 +186,7 @@ def equivalent(tag):
         "pedestrian": "footway",
         "platform": "footway",
     }
-    return equivalent.get(tag, tag)
+    return equivalent_way.get(tag, tag)
 
 
 class Datastore:
@@ -220,7 +224,7 @@ class Datastore:
 
         # Load local file if it was passed
         if self.localFile:
-            self.loadOsm(localfile)
+            self.load_osm(localfile)
 
     def clean(self):
         self.routing = self.storage_class()
@@ -228,7 +232,7 @@ class Datastore:
         # Info about OSM
         self.tiles = self.storage_class()
 
-    def _allowedVehicle(self, tags):
+    def _allowed_vehicle(self, tags):
         """Check way against access tags"""
 
         # Default to true
@@ -244,43 +248,43 @@ class Datastore:
 
         return allowed
 
-    def nodeLatLon(self, node):
+    def node_lat_lon(self, node):
         """Get node's lat lon"""
         return self.rnodes[node]
 
-    def getArea(self, lat, lon):
+    def get_area(self, lat, lon):
         """Download data in the vicinity of a lat/long"""
         # Don't download data if we loaded a custom OSM file
         if self.localFile:
             return
 
         # Get info on tile in wich lat, lon lays
-        x, y, z = _whichTile(lat, lon, ZOOM_LEVEL)
+        x, y, z = _which_tile(lat, lon, ZOOM_LEVEL)
 
-        self.getTile(x, y, z)
+        self.get_tile(x, y, z)
 
-    def getAreaRect(self, lat1, lon1, lat2, lon2):
+    def get_area_rect(self, lat1, lon1, lat2, lon2):
         """Download data in the vicinity of a lat/long"""
         # Don't download data if we loaded a custom OSM file
         if self.localFile:
             return
 
         # Get info on tile in wich lat, lon lays
-        x1, y1, z1 = _whichTile(lat1, lon1, ZOOM_LEVEL)
-        x2, y2, z2 = _whichTile(lat2, lon2, ZOOM_LEVEL)
+        x1, y1, z1 = _which_tile(lat1, lon1, ZOOM_LEVEL)
+        x2, y2, z2 = _which_tile(lat2, lon2, ZOOM_LEVEL)
         for x in range(min(x1, x2), max(x1, x2) + 1):
             for y in range(min(y1, y2), max(y1, y2) + 1):
-                self.getTile(x, y, z1)
+                self.get_tile(x, y, z1)
 
-    def getTile(self, x, y, z):
-        tileId = "{0},{1}".format(x, y)
+    def get_tile(self, x, y, z):
+        tile_id = "{0},{1}".format(x, y)
 
         # Don't redownload tiles
-        if tileId in self.tiles:
+        if tile_id in self.tiles:
             return
 
         # Download tile data
-        self.tiles[tileId] = True
+        self.tiles[tile_id] = True
         directory = os.path.join(self.cache_dir, "{}".format(z), str(x), str(y))
         filename = os.path.join(directory, "data.osm")
 
@@ -294,25 +298,25 @@ class Datastore:
 
         # Don't redownload data from pre-expire date
         try:
-            downloadedSecondsAgo = time.time() - os.path.getmtime(filename)
+            downloaded_seconds_ago = time.time() - os.path.getmtime(filename)
         except OSError:
-            downloadedSecondsAgo = math.inf
+            downloaded_seconds_ago = math.inf
 
-        if downloadedSecondsAgo >= self.expire_data:
-            left, bottom, right, top = _tileBoundary(x, y, z)
+        if downloaded_seconds_ago >= self.expire_data:
+            left, bottom, right, top = _tile_boundary(x, y, z)
             myurlretrieve(
                 "https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top),
                 filename)
         try:
-            self.loadOsm(filename)
+            self.load_osm(filename)
         except etree.ParseError:
-            left, bottom, right, top = _tileBoundary(x, y, ZOOM_LEVEL)
+            left, bottom, right, top = _tile_boundary(x, y, ZOOM_LEVEL)
             myurlretrieve(
                 "https://api.openstreetmap.org/api/0.6/map?bbox={0},{1},{2},{3}".format(left, bottom, right, top),
                 filename)
-            self.loadOsm(filename)
+            self.load_osm(filename)
 
-    def parseOsmFile(self, file):
+    def parse_osm_file(self, file):
         """Return nodes, ways and realations of given file
            Only highway=* and railway=* ways are returned, and
            only type=restriction (and type=restriction:<transport type>) are returned"""
@@ -353,17 +357,17 @@ class Datastore:
 
         return nodes, ways, relations
 
-    def loadOsm(self, file):
+    def load_osm(self, file):
         """Load data from OSM file to self"""
-        nodes, ways, relations = self.parseOsmFile(file)
+        nodes, ways, relations = self.parse_osm_file(file)
 
         for wayId, wayData in ways.items():
-            wayNodes = []
+            way_nodes = []
             for nd in wayData["nd"]:
                 if nd not in nodes:
                     continue
-                wayNodes.append((nodes[nd]["id"], nodes[nd]["lat"], nodes[nd]["lon"]))
-            self.storeWay(wayData["tag"], wayNodes)
+                way_nodes.append((nodes[nd]["id"], nodes[nd]["lat"], nodes[nd]["lon"]))
+            self.store_way(wayData["tag"], way_nodes)
 
         for relId, relData in relations.items():
             try:
@@ -380,45 +384,45 @@ class Datastore:
                         "restriction:foot" not in relData["tag"]:
                     continue
 
-                restrictionType = relData["tag"].get("restriction:" + self.transport) or relData["tag"]["restriction"]
+                restriction_type = relData["tag"].get("restriction:" + self.transport) or relData["tag"]["restriction"]
 
                 nodes = []
-                fromMember = [i for i in relData["member"] if i["role"] == "from"][0]
-                toMember = [i for i in relData["member"] if i["role"] == "to"][0]
+                from_member = [i for i in relData["member"] if i["role"] == "from"][0]
+                to_member = [i for i in relData["member"] if i["role"] == "to"][0]
 
-                for viaMember in [i for i in relData["member"] if i["role"] == "via"]:
-                    if viaMember["type"] == "way":
-                        nodes.append(ways[int(viaMember["ref"])]["nd"])
+                for via_member in [i for i in relData["member"] if i["role"] == "via"]:
+                    if via_member["type"] == "way":
+                        nodes.append(ways[int(via_member["ref"])]["nd"])
                     else:
-                        nodes.append([int(viaMember["ref"])])
+                        nodes.append([int(via_member["ref"])])
 
-                nodes.insert(0, ways[int(fromMember["ref"])]["nd"])
-                nodes.append(ways[int(toMember["ref"])]["nd"])
+                nodes.insert(0, ways[int(from_member["ref"])]["nd"])
+                nodes.append(ways[int(to_member["ref"])]["nd"])
 
-                self.storeRestriction(restrictionType, nodes)
+                self.store_restriction(restriction_type, nodes)
 
             except (KeyError, AssertionError, IndexError):
                 continue
 
-    def storeRestriction(self, restrictionType, members):
+    def store_restriction(self, restriction_type, members):
         # Order members of restriction, so that members look somewhat like this:
         # ([a, b], [b, c], [c], [c, d, e], [e, f])
         for x in range(len(members) - 1):
-            commonNode = (set(members[x]).intersection(set(members[x + 1]))).pop()
+            common_node = (set(members[x]).intersection(set(members[x + 1]))).pop()
 
             # If first node of member[x+1] is different then common_node, try to reverse it
-            if members[x + 1][0] != commonNode:
+            if members[x + 1][0] != common_node:
                 members[x + 1].reverse()
 
             # Only the "from" way can be reversed while ordering the nodes,
             # Otherwise, the x way could be reversed twice (as member[x] and member[x+1])
-            if x == 0 and members[x][-1] != commonNode:
+            if x == 0 and members[x][-1] != common_node:
                 members[x].reverse()
 
             # Assume member[x] and member[x+1] are ordered correctly
             assert members[x][-1] == members[x + 1][0]
 
-        if restrictionType.startswith("no_"):
+        if restriction_type.startswith("no_"):
             # Start by denoting 'from>via'
             forbid = "{},{},".format(members[0][-2], members[1][0])
 
@@ -432,9 +436,9 @@ class Datastore:
 
             self.forbiddenMoves[forbid] = True
 
-        elif restrictionType.startswith("only_"):
+        elif restriction_type.startswith("only_"):
             force = []
-            forceActivator = "{},{}".format(members[0][-2], members[1][0])
+            force_activator = "{},{}".format(members[0][-2], members[1][0])
 
             # Add all via members
             for x in range(1, len(members) - 1):
@@ -444,9 +448,9 @@ class Datastore:
             # Finalize by denoting 'via>to'
             force.append(members[-1][1])
 
-            self.mandatoryMoves[forceActivator] = force
+            self.mandatoryMoves[force_activator] = force
 
-    def storeWay(self, tags, nodes):
+    def store_way(self, tags, nodes):
         highway = equivalent(tags.get("highway", ""))
         railway = equivalent(tags.get("railway", ""))
         oneway = tags.get("oneway", "")
@@ -466,49 +470,49 @@ class Datastore:
             weight = weight(tags)
 
         # Check against access tags
-        if (not self._allowedVehicle(tags)) or weight <= 0:
+        if (not self._allowed_vehicle(tags)) or weight <= 0:
             return
 
         # Store routing information
         for index in range(1, len(nodes)):
-            node1Id, node1Lat, node1Lon = nodes[index - 1]
-            node2Id, node2Lat, node2Lon = nodes[index]
+            node1_id, node1_lat, node1_lon = nodes[index - 1]
+            node2_id, node2_lat, node2_lon = nodes[index]
 
             # Check if nodes' positions are stored
-            if node1Id not in self.rnodes:
-                self.rnodes[node1Id] = (node1Lat, node1Lon)
-            if node2Id not in self.rnodes:
-                self.rnodes[node2Id] = (node2Lat, node2Lon)
+            if node1_id not in self.rnodes:
+                self.rnodes[node1_id] = (node1_lat, node1_lon)
+            if node2_id not in self.rnodes:
+                self.rnodes[node2_id] = (node2_lat, node2_lon)
 
             # Check if nodes have dicts for storing travel costs
-            if node1Id not in self.routing:
-                self.routing[node1Id] = {}
-            if node2Id not in self.routing:
-                self.routing[node2Id] = {}
+            if node1_id not in self.routing:
+                self.routing[node1_id] = {}
+            if node2_id not in self.routing:
+                self.routing[node2_id] = {}
 
             # Is way traversible forward?
             if oneway not in ["-1", "reverse"]:
-                self.routing[node1Id][node2Id] = weight
+                self.routing[node1_id][node2_id] = weight
 
             # Is way traversible backword?
             if oneway not in ["yes", "true", "1"]:
-                self.routing[node2Id][node1Id] = weight
+                self.routing[node2_id][node1_id] = weight
 
-    def findNode(self, lat, lon):
+    def find_node(self, lat, lon):
         """Find the nearest node that can be the start of a route"""
         # Get area around location we're trying to find
-        self.getArea(lat, lon)
-        maxDist, closestNode = math.inf, None
+        self.get_area(lat, lon)
+        max_dist, closest_node = math.inf, None
 
         # Iterate over nodes and overwrite closest_node if it's closer
-        for nodeId, nodePos in self.rnodes.items():
+        for node_id, node_pos in self.rnodes.items():
 
-            distanceDiff = distance(nodePos, (lat, lon))
-            if distanceDiff < maxDist:
-                maxDist = distanceDiff
-                closestNode = nodeId
+            distance_diff = distance(node_pos, (lat, lon))
+            if distance_diff < max_dist:
+                max_dist = distance_diff
+                closest_node = node_id
 
-        return closestNode
+        return closest_node
 
     def report(self):
         """Display some info about the loaded data"""

@@ -115,7 +115,7 @@ with the double arrows between start and stop button.
 On the map, you can select tiles to visit, just by clicking on it. Same to
 unselect a tile.
 
-**Be carefull**: Don't add to much tiles. The time of computation increase exponentially !
+**Be careful**: Don't add to much tiles. The time of computation increase exponentially !
 
 #### Download route
 
@@ -158,6 +158,6 @@ and the missing tiles.
 - [X] [Improvement] Add installation for python package
 - [ ] [Improvement] All UI in FR or EN
 - [ ] [Improvement] Add a way to reload tiles data
-- [ ] [Improvement] Save routes locally
+- [X] [Improvement] Save routes locally
 - [X] [Improvement] Direct download trace
 - [X] [Bug] display if a tile has no entry point
