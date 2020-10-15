@@ -197,6 +197,7 @@ class Datastore:
         # Routing data
         print("############ DATASTORE init ################")
         self.routing = storage_class()
+        self.not_update_routing = storage_class()
         self.rnodes = storage_class()
         self.mandatoryMoves = storage_class()
         self.forbiddenMoves = storage_class()
@@ -492,11 +493,13 @@ class Datastore:
 
             # Is way traversible forward?
             if oneway not in ["-1", "reverse"]:
-                self.routing[node1_id][node2_id] = weight
+                if node1_id not in self.not_update_routing or node2_id not in self.not_update_routing[node1_id]:
+                    self.routing[node1_id][node2_id] = weight
 
             # Is way traversible backword?
             if oneway not in ["yes", "true", "1"]:
-                self.routing[node2_id][node1_id] = weight
+                if node2_id not in self.not_update_routing or node1_id not in self.not_update_routing[node2_id]:
+                    self.routing[node2_id][node1_id] = weight
 
     def find_node(self, lat, lon):
         """Find the nearest node that can be the start of a route"""

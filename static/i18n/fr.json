@@ -14,7 +14,7 @@
   "message-state-complete": "Itinéraire terminé",
   "message-state-ask-route": "Demande d'itinéraire...",
   "message-state-wait": "Attente...",
-  "message-state-fail": "ERREUR"
-
-
+  "message-state-fail": "ERREUR",
+  "message-turnaround-cost": "Coût du demi tour",
+  "message-cost-no": "aucun"
 }

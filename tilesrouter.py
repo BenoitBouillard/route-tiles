@@ -99,7 +99,7 @@ def debug_export_tiles(tiles):
 
 
 class MyRouter(object):
-    def __init__(self, router, start, end, tiles):
+    def __init__(self, router, start, end, tiles, config):
         self.router = router
         self._min_route = None
         self.min_length = None
@@ -109,6 +109,7 @@ class MyRouter(object):
         self.end = end
         self.tiles = tiles
         self.progress = 100.0
+        self.config = config
 
         debug_export_tiles(tiles)
 
@@ -123,7 +124,8 @@ class MyRouter(object):
         self.min_length = None
         self._min_route = None
 
-        status, r = self.do_route_with_crossing_zone(self.start.nodeId, self.end.nodeId, frozenset(self.tiles))
+        status, r = self.do_route_with_crossing_zone(self.start.nodeId, self.end.nodeId,
+                                                     frozenset(self.tiles), self.config)
         if status != "success":
             route = None
         else:
@@ -147,7 +149,7 @@ class MyRouter(object):
             self._min_route = Route([int(i) for i in self._min_route.split(",")], router=self.router)
         return self._min_route
 
-    def do_route_with_crossing_zone(self, start, end, zones):
+    def do_route_with_crossing_zone(self, start, end, zones, config):
         """Do the routing"""
         _closed = {(start, frozenset(zones))}
         _queue = []
@@ -204,6 +206,16 @@ class MyRouter(object):
             #    return
 
             edge_cost = distance(self.router.rnodes[item_start], self.router.rnodes[item_end]) / item_weight
+
+            # if turn around add additional cost
+            if config['turnaround_cost']>0:
+                queue_so_far_nodes = queue_so_far["nodes"].split(',')
+                if len(queue_so_far_nodes)>2:
+                    if str(item_end) == queue_so_far_nodes[-2]:
+                        _export_queue(queue_so_far)
+                        print("Turnaround cost")
+                        edge_cost += config['turnaround_cost']
+
             total_cost = queue_so_far["cost"] + edge_cost
 
             def _min_dist(start_loc, tiles, end_loc, store=True, fast=False):
@@ -440,7 +452,7 @@ class RouteServer(object):
         self.mode = None
         self.thread = None
 
-    def start_route(self, mode, start_loc, end_loc, tiles, thread=True):
+    def start_route(self, mode, start_loc, end_loc, tiles, config={}, thread=True):
         print(tiles)
 
         if thread and self.myRouter and not self.myRouter.is_complete:
@@ -464,7 +476,7 @@ class RouteServer(object):
             if not self.stored_tiles[t].entryNodeId:
                 return False, "No entry point for tiles", [t]
 
-        self.myRouter = MyRouter(self.router, start_point, end_point, selected_tiles)
+        self.myRouter = MyRouter(self.router, start_point, end_point, selected_tiles, config)
         if thread:
             self.thread = threading.Thread(target=self.myRouter.run)
             # Background thread will finish with the main program
@@ -491,13 +503,16 @@ class RouteServer(object):
 
 
 if __name__ == '__main__':
+    from pprint import pprint
     # import time
-    tiles_to_kml(['8251_5613', '8251_5614', '8249_5615'], "debug/test.kml", "test")
-    # rs = RouteServer()
+    # tiles_to_kml(['8251_5613', '8251_5614', '8249_5615'], "debug/test.kml", "test")
+    rs = RouteServer()
     # print(computeMissingKml(open("missing_tiles.kml", "rb")))
-    # print(rs.start_route([49.250775603162886,1.4452171325683596],
-    #                     [49.250775603162886,1.4452171325683596],
-    #                     [205], thread=False).min_route.getCoords(rs.myRouter.router))
+
+    pprint(rs.start_route('roadcycle', [48.96603327300286,1.6886383442175525],
+                        [48.967230660169,1.6828179895699071],
+                        ['8268_5629'], config={'turnaround_cost':1}, thread=False)[2].route)
+
     # print(rs.start_route([49.250775603162886,1.4452171325683596],
     #                     [49.250775603162886,1.4452171325683596],
     #                     ["8257_5607", "8257_5610"], thread=False).min_route.routeLatLons)

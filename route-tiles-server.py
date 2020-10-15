@@ -79,6 +79,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         start = [float(qs['start[]'][0]), float(qs['start[]'][1])]
         end = [float(qs['end[]'][0]), float(qs['end[]'][1])]
         mode = qs['mode'][0]
+        turnaround_cost = float(qs['turnaroundCost'][0])
         if 'tiles[]' in qs:
             tiles = qs['tiles[]']
             for i in range(len(tiles)):
@@ -89,7 +90,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
 
         answer = {'sessionId': self.sessionId}
 
-        router, message, info = self.session.routeServer.start_route(mode, start, end, tiles)
+        router, message, info = self.session.routeServer.start_route(mode, start, end, tiles, config={'turnaround_cost':turnaround_cost})
 
         if router:
             answer['status'] = "OK"

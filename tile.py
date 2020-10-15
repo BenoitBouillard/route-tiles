@@ -221,6 +221,9 @@ class Tile(ZoneWithEntries):
 
                     weight = router.routing[node_a][node_b]
 
+                    if node_a not in router.not_update_routing:
+                        router.not_update_routing[node_a] = []
+                    router.not_update_routing[node_a].append(node_b)
                     n0 = node_a
                     for n in nodes_id:
                         router.routing[n0][n] = weight

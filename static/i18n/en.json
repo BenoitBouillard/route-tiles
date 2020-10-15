@@ -14,5 +14,7 @@
   "message-state-complete": "Route complete",
   "message-state-ask-route": "Ask for route...",
   "message-state-wait": "Wait...",
-  "message-state-fail": "FAIL"
+  "message-state-fail": "FAIL",
+  "message-turnaround-cost": "Turnaround cost",
+  "message-cost-no": "no cost"
 }

@@ -235,30 +235,46 @@ $(document).ready(function(){
         };
 
         { // MODE
+            function set_mode_selection(mode) {
+                $('#mode-selection').data('mode', mode);
+                $('#mode-selection').data('i18n', 'message-mode-'+mode);
+                $('#mode-selection').attr('data-i18n', 'message-mode-'+mode); // without this i18n don't work ! Why ?
+                $('#mode-selection').i18n();
+            }
+
             $('a.dropdown-item').on('click', function(e) {
                 if ($(this).data('mode') != $('#mode-selection').data('mode')) {
-                    $('#mode-selection').data('mode', $(this).data('mode'));
-                    $('#mode-selection').data('i18n', 'message-mode-'+$(this).data('mode'));
-                    $('#mode-selection').i18n();
+                    set_mode_selection($(this).data('mode'));
                     localStorage.setItem('mode', $(this).data('mode'));
                     request_route();
                 }
             });
             let lmd = localStorage.getItem('mode')
             if (lmd) {
-                $('#mode-selection').data('mode', lmd);
-                $('#mode-selection').data('i18n', 'message-mode-'+lmd);
-                $('#mode-selection').attr('data-i18n', 'message-mode-'+lmd); // without this i18n don't work ! Why ?
-                $('#mode-selection').i18n();
+                set_mode_selection(lmd);
             }
         }
 
+        {
+            let turnaround_cost = localStorage.getItem('turnaround-cost')
+            if (turnaround_cost) {
+                let val = $("#turnaround-cost").find('option[data-cost="'+turnaround_cost+'"]').val();
+                $("#turnaround-cost").val(val);
+            }
+
+            $('#turnaround-cost').change(function(){
+                localStorage.setItem('turnaround-cost', $(this).find(':selected').data('cost'));
+                request_route();
+            });
+        }
 
         function start_route(timeout_id) {
             if (timeout_id != active_timeout) return;
             $('button#addTrace').prop("disabled", true);
             $("p#message").text($.i18n("message-state-ask-route"));
-            let data = { 'sessionId': sessionId, start : latlonToQuery(markers['start'].getLatLng()) }
+            let data = { 'sessionId'      : sessionId,
+                         'start'          : latlonToQuery(markers['start'].getLatLng()),
+                         'turnaroundCost':$("#turnaround-cost").find(':selected').data('cost') }
             if ('end' in markers) {
                 data['end'] = latlonToQuery(markers['end'].getLatLng());
             }

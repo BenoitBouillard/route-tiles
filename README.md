@@ -95,6 +95,15 @@ It is possible to choose from several modes:
 - **Chemin**: use any path
 - **Trail**: use path preferably
 
+#### Turnaround price
+
+For some personal reason, we could want to avoid turnaround on tile visiting 
+(there is no other reason to have a turnaround on route computation), 
+even if it is the minimum route. 
+We could accept to do 100m or 1km more.
+This option can add an additional cost for each turnaround, 
+and them limit them with an acceptable cost.
+
 #### start and end position
 
 Start position is mandatory. End position is optional. 
@@ -152,12 +161,13 @@ and the missing tiles.
 
 - [ ] [Improvement] Add CANCEL to merge
 - [ ] [Improvement] Add Elevation
-- [ ] [Improvement] Add option to avoid turn around (Turn around price ?)
 - [ ] [Improvement] Add description to buttons
 - [ ] [Improvement] Add line command arguments for port
+- [ ] [Improvement] Add a way to reload tiles data (in case of data evolution on OSM server)
+
 - [X] [Improvement] Add installation for python package
 - [X] [Improvement] Localization in FR and EN
-- [ ] [Improvement] Add a way to reload tiles data
 - [X] [Improvement] Save routes locally
 - [X] [Improvement] Direct download trace
 - [X] [Bug] display if a tile has no entry point
+- [X] [Improvement] Add option to limit turn around (Turn around price)
