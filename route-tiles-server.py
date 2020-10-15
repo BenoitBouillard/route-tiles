@@ -96,7 +96,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             if self.session.routeServer.is_complete:
                 answer['state'] = 'complete'
             else:
-                answer['state'] = 'searching...'
+                answer['state'] = 'searching'
 
             route = self.session.routeServer.route
             if route:
@@ -119,7 +119,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         if self.session.routeServer.is_complete:
             answer['state'] = 'complete'
         else:
-            answer['state'] = 'searching...'
+            answer['state'] = 'searching'
 
         answer['progress'] = self.session.routeServer.progress
         route = self.session.routeServer.route

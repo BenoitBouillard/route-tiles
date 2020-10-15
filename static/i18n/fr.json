@@ -1,0 +1,20 @@
+{
+  "@metadata": {},
+  "msg-missing-tiles-file": "Fichier KML des tiles manquants",
+  "message-mode-roadcycle" : "Route",
+  "message-mode-foot" : "Chemin",
+  "message-mode-trail" : "Trail",
+  "message-start-button": "Départ",
+  "message-end-button": "Arrivée",
+  "message-clear-tiles-button": "Effacer les carrés",
+  "message-routes-add-button": "Ajouter",
+  "message-routes-rename": "Renommer",
+  "message-switch-language": "Changer de langue:",
+  "message-state-searching": "Recherche en cours...",
+  "message-state-complete": "Itinéraire terminé",
+  "message-state-ask-route": "Demande d'itinéraire...",
+  "message-state-wait": "Attente...",
+  "message-state-fail": "ERREUR"
+
+
+}

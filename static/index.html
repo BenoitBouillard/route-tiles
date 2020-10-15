@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <!--suppress ALL -->
-<html lang="fr-FR">
+<html>
 <head>
-	
+
 	<title>Route Tiles</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-	
+
 	<!--<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />-->
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
-    
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-        
+
     <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-	
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.7/jquery.i18n.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.7/jquery.i18n.messagestore.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bs-custom-file-input/dist/bs-custom-file-input.min.js"></script>
 
     <script src="index.js"></script>
-    
+
     <style>
         label.custom-file-label {
             overflow:hidden;
@@ -42,7 +44,7 @@
     <form id="set_kml">
         <div class="custom-file">
           <input type="file" class="custom-file-input" id="file">
-          <label class="custom-file-label" for="file" data-browse="Selectionner...">Fichier KML des tiles manquants</label>
+          <label class="custom-file-label" for="file" data-browse="Selectionner..." data-i18n="msg-missing-tiles-file">Fichier KML des tiles manquants</label>
         </div>
     </form>
 
@@ -53,15 +55,15 @@
             <span class="sr-only">Toggle Dropdown</span>
           </button>
           <div class="dropdown-menu">
-            <a class="dropdown-item" href="#" data-mode="roadcycle">Route</a>
-            <a class="dropdown-item" href="#" data-mode="foot">Chemin</a>
-            <a class="dropdown-item" href="#" data-mode="trail">Trail</a>
+            <a class="dropdown-item" href="#" data-mode="roadcycle" data-i18n="message-mode-roadcycle"></a>
+            <a class="dropdown-item" href="#" data-mode="foot" data-i18n="message-mode-foot"></a>
+            <a class="dropdown-item" href="#" data-mode="trail" data-i18n="message-mode-trail"></a>
           </div>
         </div>
       </div>
 
     <div class="btn-group" role="group" aria-label="Starting point">
-        <button class="btn btn-primary" id="bStart">Départ</button>
+        <button class="btn btn-primary" id="bStart" data-i18n="message-start-button">message-start-button</button>
         <!--input type="text" id="start" name="start" /-->
         <button class="btn btn-danger" id="bClearStart">
             <svg class="bi bi-trash" width="1.5em" height="1.5em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -78,7 +80,7 @@
         </svg>
     </button>
     <div class="btn-group" role="group" aria-label="Ending point">
-        <button class="btn btn-primary" id="bEnd">Arrivée</button>
+        <button class="btn btn-primary" id="bEnd" data-i18n="message-end-button">Arrivée</button>
         <!--input type="text" id="end" name="end" /-->
         <button class="btn btn-danger" id="bClearEnd">
             <svg class="bi bi-trash" width="1.5em" height="1.5em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -87,15 +89,15 @@
             </svg>
         </button>
     </div>
-    
+
     <div>
 
         <div class="" role="group" aria-label="menu" id="run-button-group">
             <!--<button type="button" class="btn btn-success" id="route">Chercher</button>-->
-            <button type="button" class="btn btn-warning" id="clear-tiles">Effacer les carrés</button>
+            <button type="button" class="btn btn-warning" id="clear-tiles" data-i18n="message-clear-tiles-button">Effacer les carrés</button>
             <!--<button type="button" class="btn btn-info" id="export-tiles">Exporter les carrés en KML</button>-->
         </div>
-        
+
     </div>
 
     <p id="length"></p>
@@ -114,9 +116,9 @@
       <h3>Routes</h3>
     <div>
         <input type="text" id="traceName" name="traceName" />
-        <button class="btn btn-primary" id="addTrace">Add</button>
+        <button class="btn btn-primary" id="addTrace" data-i18n="message-routes-add-button">Add</button>
         <div class="btn-group" role="group" aria-label="menu" style="float:right;" id="trace-button-group">
-            <button type="button" class="btn btn-outline-info" id="rename-trace">Renommer</button>
+            <button type="button" class="btn btn-outline-info" id="rename-trace"data-i18n="message-routes-rename">Renommer</button>
             <button type="button" class="btn btn-outline-info" id="togpx-trace">
                 <svg id="i-download" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="1em" height="1em" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
                     <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30" />
@@ -145,6 +147,11 @@
       </label>
     </div>
 </div>-->
+      <div class="switch-locale">
+          <span data-i18n="message-switch-language"></span>
+          <a href="#" data-locale="en">English</a> -
+          <a href="#" data-locale="fr">Français</a>
+      </div>
 
   </div>
 </div>

@@ -156,7 +156,7 @@ and the missing tiles.
 - [ ] [Improvement] Add description to buttons
 - [ ] [Improvement] Add line command arguments for port
 - [X] [Improvement] Add installation for python package
-- [ ] [Improvement] All UI in FR or EN
+- [X] [Improvement] Localization in FR and EN
 - [ ] [Improvement] Add a way to reload tiles data
 - [X] [Improvement] Save routes locally
 - [X] [Improvement] Direct download trace

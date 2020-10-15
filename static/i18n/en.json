@@ -1,0 +1,18 @@
+{
+  "@metadata": {},
+  "msg-missing-tiles-file": "Missing tiles kml file",
+  "message-mode-roadcycle" : "Road",
+  "message-mode-foot" : "Foot",
+  "message-mode-trail" : "Trail",
+  "message-start-button": "Start",
+  "message-end-button": "End",
+  "message-clear-tiles-button": "Clear tiles",
+  "message-routes-add-button": "Add",
+  "message-routes-rename": "Rename",
+  "message-switch-language": "Switch language:",
+  "message-state-searching": "Searching route...",
+  "message-state-complete": "Route complete",
+  "message-state-ask-route": "Ask for route...",
+  "message-state-wait": "Wait...",
+  "message-state-fail": "FAIL"
+}
