@@ -63,6 +63,11 @@ A message should be displayed:
 serving at port 8000
 ```
 
+It is possible to change the port with --port option:
+``` shell
+>python route-tile-server.py --port 80
+serving at port 80
+```
 
 ### User interface
 
@@ -162,8 +167,8 @@ and the missing tiles.
 - [ ] [Improvement] Add CANCEL to merge
 - [ ] [Improvement] Add Elevation
 - [ ] [Improvement] Add description to buttons
-- [ ] [Improvement] Add line command arguments for port
 - [ ] [Improvement] Add a way to reload tiles data (in case of data evolution on OSM server)
+- [ ] [Bug] Session management has no timeout
 
 - [X] [Improvement] Add installation for python package
 - [X] [Improvement] Localization in FR and EN
@@ -171,3 +176,4 @@ and the missing tiles.
 - [X] [Improvement] Direct download trace
 - [X] [Bug] display if a tile has no entry point
 - [X] [Improvement] Add option to limit turn around (Turn around price)
+- [X] [Improvement] Add line command arguments for port

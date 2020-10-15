@@ -8,6 +8,7 @@ import socketserver
 import string
 import struct
 import zlib
+import argparse
 from datetime import datetime
 from functools import partial
 from pathlib import Path
@@ -297,12 +298,22 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         return session_object
 
 
-# Create gpx folder is not exists for gpx export
-Path(__file__).parent.joinpath('static', 'gpx').mkdir(exist_ok=True)
-Path(__file__).parent.joinpath('debug').mkdir(exist_ok=True)
+def route_tiles_server(port):
+    # Create gpx folder is not exists for gpx export
+    Path(__file__).parent.joinpath('static', 'gpx').mkdir(exist_ok=True)
+    Path(__file__).parent.joinpath('debug').mkdir(exist_ok=True)
+    handler_class = partial(RouteHttpServer, directory=str(Path(__file__).parent.joinpath('static')))
+    with socketserver.TCPServer(("", port), handler_class) as httpd:
+        print("serving at port", port)
+        httpd.serve_forever()
 
-handler_class = partial(RouteHttpServer, directory=str(Path(__file__).parent.joinpath('static')))
 
-with socketserver.TCPServer(("", PORT), handler_class) as httpd:
-    print("serving at port", PORT)
-    httpd.serve_forever()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Route Tiles server')
+    parser.add_argument('-p', '--port', dest="port", type=int, default=PORT, help="Server port")
+    args = parser.parse_args()
+
+    port = vars(args)['port']
+
+    route_tiles_server(port)
+
