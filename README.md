@@ -12,7 +12,7 @@ Requirements:
 - python 3.x
 
 
-Open a terminal window and na`vigate to the folder that you want
+Open a terminal window and navigate to the folder that you want
 to download route-tiles into.
 Write in the terminal window
 
@@ -177,3 +177,4 @@ and the missing tiles.
 - [X] [Bug] display if a tile has no entry point
 - [X] [Improvement] Add option to limit turn around (Turn around price)
 - [X] [Improvement] Add line command arguments for port
+- [X] [Bug] Turnaround price don't find the better route

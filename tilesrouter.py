@@ -7,6 +7,8 @@ from pathlib import Path
 import gpxpy
 import gpxpy.gpx
 from fastkml import kml, styles
+from shapely.geometry import Point, Polygon
+
 
 from pyroutelib3 import Datastore
 from tile import Tile, CoordDict, coord_from_tile
@@ -149,6 +151,170 @@ class MyRouter(object):
             self._min_route = Route([int(i) for i in self._min_route.split(",")], router=self.router)
         return self._min_route
 
+    def crossing_tile(self, start, tile, mandatory_nodes):
+        """Do the routing"""
+        _closed = set()
+        _queue = []
+        _closeNode = True
+        find_routes = []
+
+        if start in tile.routes_from_entry_point:
+            return tile.routes_from_entry_point[start]
+
+        tile_bounds = Polygon(tile.linear_ring(9.9))
+
+        def _export_queue(new_item=None):
+            nonlocal _closed, _queue, _closeNode
+            with open('debug/routes.js', 'w') as hf:
+                hf.write("var routes = [\n")
+                if new_item:
+                    route = [int(i) for i in new_item["nodes"].split(",")]
+                    hf.write(" { \n")
+                    hf.write("  'name':'{0:.3f}',\n".format(new_item['cost']))
+                    hf.write("  'length':{},\n".format(new_item['cost']))
+                    hf.write("  'route':[\n")
+                    for lat, lon in list(map(self.router.node_lat_lon, route)):
+                        hf.write("[{},{}],\n".format(lat, lon))
+                    hf.write("  ],\n")
+                    hf.write("  },\n")
+                for q in _queue + find_routes:
+                    route = [int(i) for i in q["nodes"].split(",")]
+                    hf.write(" { \n")
+                    hf.write("  'name':'{0:.3f}',\n".format(q['cost']))
+                    hf.write("  'length':{},\n".format(q['cost']))
+                    hf.write("  'route':[\n")
+                    for lat, lon in list(map(self.router.node_lat_lon, route)):
+                        hf.write("[{},{}],\n".format(lat, lon))
+                    hf.write("  ],\n")
+                    hf.write("  },\n")
+                hf.write("];\n")
+
+        # Define function that addes to the queue
+        def _add_to_queue(item_start, item_end, queue_so_far, item_weight=1):
+            """Add another potential route to the queue"""
+            nonlocal _closed, _queue, _closeNode
+
+            # Assume start and end nodes have positions
+            if item_end not in self.router.rnodes or item_start not in self.router.rnodes:
+                return
+
+            # Get data around end node
+            self.router.get_area(self.router.rnodes[item_end][0], self.router.rnodes[item_end][1])
+
+            # Ignore if route is not traversible
+            if item_weight == 0:
+                return
+
+            # Do not turn around at a node (don't do this: a-b-a)
+            # if len(queueSoFar["nodes"].split(",")) >= 2 and queueSoFar["nodes"].split(",")[-2] == str(end):
+            #    return
+
+            edge_cost = distance(self.router.rnodes[item_start], self.router.rnodes[item_end]) / item_weight
+
+            total_cost = queue_so_far["cost"] + edge_cost
+
+            all_nodes = queue_so_far["nodes"] + "," + str(item_end)
+
+            # Check if path queueSoFar+end is not forbidden
+            for i in self.router.forbiddenMoves:
+                if i in all_nodes:
+                    _closeNode = False
+                    return
+
+            # Check if we have a way to 'end' node
+            end_queue_item = None
+            for i in _queue:
+                if i["end"] == item_end:
+                    end_queue_item = i
+                    break
+
+            if end_queue_item:
+                # If we do, and known total_cost to end is lower we can ignore the queueSoFar path
+                if end_queue_item["cost"] < total_cost:
+                    return
+                # If the queued way to end has higher total cost, remove it
+                # (and add the queueSoFar scenario, as it's cheaper)
+                elif end_queue_item:
+                    _queue.remove(end_queue_item)
+
+            # Check against mandatory turns
+            force_next_nodes = None
+            if queue_so_far.get("mandatoryNodes", None):
+                force_next_nodes = queue_so_far["mandatoryNodes"]
+
+            else:
+                for activationNodes, nextNodes in self.router.mandatoryMoves.items():
+                    if all_nodes.endswith(activationNodes):
+                        _closeNode = False
+                        force_next_nodes = nextNodes.copy()
+                        break
+
+            # Create a hash for all the route's attributes
+            queue_item = {
+                "cost": total_cost,
+                "nodes": all_nodes,
+                "end": item_end,
+                "mandatoryNodes": force_next_nodes
+            }
+
+            # Try to insert, keeping the queue ordered by decreasing heuristic cost
+            position = 0
+            for test in _queue:
+                if test["cost"] > queue_item["cost"]:
+                    _queue.insert(position, queue_item)
+                    break
+                position += 1
+            else:
+                _queue.append(queue_item)
+
+        # Start by queueing all outbound links from the start node
+        if start not in self.router.routing:
+            raise KeyError("node {} doesn't exist in the graph".format(start))
+
+        _queue.append({"cost": 0, "nodes": str(start), "end": start, "mandatoryNodes": mandatory_nodes})
+
+        # Limit for how long it will search
+        while _queue and not self._exit:
+            _closeNode = True
+            # _export_queue()
+
+            # Pop first item from queue for routing. If queue it's empty - it means no route exists
+            next_item = _queue.pop(0)
+
+            considered_node = next_item["end"]
+
+            # If we already visited the node, ignore it
+            if considered_node in _closed:
+                continue
+
+            # Found the end node - success
+            if not tile_bounds.contains(Point(*self.router.node_lat_lon(considered_node))) :
+                find_routes.append(next_item)
+                continue
+
+            # Check if we preform a mandatory turn
+            if next_item["mandatoryNodes"]:
+                _closeNode = False
+                next_node = next_item["mandatoryNodes"].pop(0)
+                if considered_node in self.router.routing and \
+                        next_node in self.router.routing.get(considered_node, {}).keys():
+                    _add_to_queue(considered_node, next_node, next_item,
+                                  self.router.routing[considered_node][next_node])
+
+            # If no, add all possible nodes from x to queue
+            elif considered_node in self.router.routing:
+                for next_node, weight in list(self.router.routing[considered_node].items()):
+                    if next_node not in _closed:
+                        _add_to_queue(considered_node, next_node, next_item, weight)
+
+            if _closeNode:
+                _closed.add(considered_node)
+
+        if __debug__:
+            _export_queue()
+        tile.routes_from_entry_point[start] = find_routes, _closed
+        return find_routes, _closed
+
     def do_route_with_crossing_zone(self, start, end, zones, config):
         """Do the routing"""
         _closed = {(start, frozenset(zones))}
@@ -185,6 +351,34 @@ class MyRouter(object):
                     hf.write("  },\n")
                 hf.write("];\n")
 
+        def _min_dist(start_loc, tiles, end_loc, store=True, fast=False):
+            nonlocal min_dists, min_dists_fast
+            if self._exit:
+                return 0
+            md = min_dists_fast if fast else min_dists
+            # compute flyby min distance by visiting all tiles
+            if len(tiles) == 0:
+                return distance(start_loc, end_loc)
+
+            if (start_loc, frozenset(tiles), end_loc) in md:
+                return md[(start_loc, frozenset(tiles), end_loc)]
+
+            min_dist = None
+            for t in tiles:
+                remain_tiles = set(tiles) - {t}
+                if fast and len(t.entryNodeId) > 4:
+                    ep = t.edges
+                else:
+                    ep = [n.latlon for n in t.entryNodeId]
+                for entry in ep:
+                    pa = distance(start_loc, entry)
+                    pb = _min_dist(entry, remain_tiles, end_loc, fast=fast)
+                    if min_dist is None or pa + pb < min_dist:
+                        min_dist = pa + pb
+            if store:
+                md[(start_loc, frozenset(tiles), end_loc)] = min_dist
+            return min_dist
+
         # Define function that addes to the queue
         def _add_to_queue(item_start, item_not_visited_zones, item_end, queue_so_far, item_weight=1):
             """Add another potential route to the queue"""
@@ -207,50 +401,11 @@ class MyRouter(object):
 
             edge_cost = distance(self.router.rnodes[item_start], self.router.rnodes[item_end]) / item_weight
 
-            # if turn around add additional cost
-            if config['turnaround_cost']>0:
-                queue_so_far_nodes = queue_so_far["nodes"].split(',')
-                if len(queue_so_far_nodes)>2:
-                    if str(item_end) == queue_so_far_nodes[-2]:
-                        _export_queue(queue_so_far)
-                        print("Turnaround cost")
-                        edge_cost += config['turnaround_cost']
-
             total_cost = queue_so_far["cost"] + edge_cost
 
-            def _min_dist(start_loc, tiles, end_loc, store=True, fast=False):
-                nonlocal min_dists, min_dists_fast
-                if self._exit:
-                    return 0
-                md = min_dists_fast if fast else min_dists
-                # compute flyby min distance by visiting all tiles
-                if len(tiles) == 0:
-                    return distance(start_loc, end_loc)
-
-                if (start_loc, frozenset(tiles), end_loc) in md:
-                    return md[(start_loc, frozenset(tiles), end_loc)]
-
-                min_dist = None
-                for t in tiles:
-                    remain_tiles = set(tiles) - {t}
-                    if fast and len(t.entryNodeId) > 4:
-                        ep = t.edges
-                    else:
-                        ep = [n.latlon for n in t.entryNodeId]
-                    for entry in ep:
-                        pa = distance(start_loc, entry)
-                        pb = _min_dist(entry, remain_tiles, end_loc, fast=fast)
-                        if min_dist is None or pa + pb < min_dist:
-                            min_dist = pa + pb
-                if store:
-                    md[(start_loc, frozenset(tiles), end_loc)] = min_dist
-                return min_dist
-
-            # t = time.time() if len(min_dists)==0 else None
             hc = _min_dist(self.router.rnodes[item_end], item_not_visited_zones, self.router.rnodes[_end], False,
                            len(item_not_visited_zones) > 5)
-            # if t:
-            # print("min dist time:{}".format(time.time()-t))
+
             heuristic_cost = total_cost + hc
 
             all_nodes = queue_so_far["nodes"] + "," + str(item_end)
@@ -262,20 +417,22 @@ class MyRouter(object):
                     return
 
             # Check if we have a way to 'end' node
-            end_queue_item = None
-            for i in _queue:
-                if (i["end"], i["not_visited_zones"]) == (item_end, item_not_visited_zones):
-                    end_queue_item = i
-                    break
+            if config['turnaround_cost']==0:
+                end_queue_item = None
+                for i in _queue:
+                    if (i["end"], i["not_visited_zones"]) == (item_end, item_not_visited_zones):
+                        end_queue_item = i
+                        break
 
-            # If we do, and known total_cost to end is lower we can ignore the queueSoFar path
-            if end_queue_item and end_queue_item["cost"] < total_cost:
-                return
+                if end_queue_item:
+                    # If we do, and known total_cost to end is lower we can ignore the queueSoFar path
+                    if end_queue_item["cost"] < total_cost:
+                        return
 
-            # If the queued way to end has higher total cost, remove it
-            # (and add the queueSoFar scenario, as it's cheaper)
-            elif end_queue_item:
-                _queue.remove(end_queue_item)
+                    # If the queued way to end has higher total cost, remove it
+                    # (and add the queueSoFar scenario, as it's cheaper)
+                    elif end_queue_item:
+                        _queue.remove(end_queue_item)
 
             # Check against mandatory turns
             force_next_nodes = None
@@ -298,7 +455,9 @@ class MyRouter(object):
                 "not_visited_zones": item_not_visited_zones,
                 "mandatoryNodes": force_next_nodes
             }
+            _add_queue(queue_item)
 
+        def _add_queue(queue_item):
             # Try to insert, keeping the queue ordered by decreasing heuristic cost
             position = 0
             for test in _queue:
@@ -306,7 +465,6 @@ class MyRouter(object):
                     _queue.insert(position, queue_item)
                     break
                 position += 1
-
             else:
                 _queue.append(queue_item)
 
@@ -345,9 +503,33 @@ class MyRouter(object):
                 self.progress = 100.0 * next_item['cost'] / next_item['heuristic_cost']
                 print_progress_bar(next_item['cost'], next_item['heuristic_cost'])
 
+            is_traverse_tile = False
             for zone in not_visited_zones:
                 if considered_node in zone.entry_nodes_id:
                     not_visited_zones = not_visited_zones - {zone}
+                    if self.config.get('turnaround_cost', 0)>0:
+                        is_traverse_tile = True
+                        routes, routes_closed = self.crossing_tile(considered_node, zone, next_item['mandatoryNodes'])
+                        for route in routes:
+                            # Create a hash for all the route's attributes
+                            hc = _min_dist(self.router.rnodes[route['end']], not_visited_zones,
+                                           self.router.rnodes[_end], False,len(not_visited_zones) > 5)
+                            cost = next_item['cost'] + route['cost']
+                            if str(route['end']) in next_item['nodes'].split(','):
+                                cost += self.config.get('turnaround_cost', 0)
+                            queue_item = {
+                                "cost": cost,
+                                "heuristic_cost": cost + hc,
+                                "nodes": next_item['nodes'] + ',' + route['nodes'],
+                                "end": route['end'],
+                                "not_visited_zones": not_visited_zones,
+                                "mandatoryNodes": route['mandatoryNodes']
+                            }
+                            _add_queue(queue_item)
+                        for closed in routes_closed:
+                            _closed.add((closed, not_visited_zones))
+            if is_traverse_tile:
+                continue
 
             # If we already visited the node, ignore it
             if (considered_node, not_visited_zones) in _closed:
@@ -509,9 +691,9 @@ if __name__ == '__main__':
     rs = RouteServer()
     # print(computeMissingKml(open("missing_tiles.kml", "rb")))
 
-    pprint(rs.start_route('roadcycle', [48.96603327300286,1.6886383442175525],
-                        [48.967230660169,1.6828179895699071],
-                        ['8268_5629'], config={'turnaround_cost':1}, thread=False)[2].route)
+    pprint(rs.start_route('roadcycle', [48.93321365197892,1.25544548034668],
+                        [48.930225132788294,1.2726116180419924],
+                        ['8249_5630'], config={'turnaround_cost':2}, thread=False)[2])
 
     # print(rs.start_route([49.250775603162886,1.4452171325683596],
     #                     [49.250775603162886,1.4452171325683596],
