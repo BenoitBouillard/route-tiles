@@ -112,6 +112,7 @@ class Tile(ZoneWithEntries):
         self.lat = (self.latS + self.latN) / 2
         self.uid = "{0.x}_{0.y}".format(self)
         self.entryNodeId = []
+        self.routes_from_entry_point = {}
 
     @property
     def middle(self):
