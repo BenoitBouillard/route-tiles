@@ -109,6 +109,8 @@ We could accept to do 100m or 1km more.
 This option can add an additional cost for each turnaround, 
 and them limit them with an acceptable cost.
 
+/!\ The algorithm don't find the better route without turnaround (bug) /!\
+
 #### start and end position
 
 Start position is mandatory. End position is optional. 
@@ -169,6 +171,7 @@ and the missing tiles.
 - [ ] [Improvement] Add description to buttons
 - [ ] [Improvement] Add a way to reload tiles data (in case of data evolution on OSM server)
 - [ ] [Bug] Session management has no timeout
+- [ ] [Bug] Turnaround price don't find the better route
 
 - [X] [Improvement] Add installation for python package
 - [X] [Improvement] Localization in FR and EN
