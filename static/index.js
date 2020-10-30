@@ -382,7 +382,6 @@ $(document).ready(function(){
             e.preventDefault();
         });
 
-        $("#statshunters_url").val(localStorage.getItem("statshunters_url") || "")
         $( 'button#bImportStatsHunters' ).click(function ( e ) {
             var data;
 
@@ -412,6 +411,26 @@ $(document).ready(function(){
 
             e.preventDefault();
         });
+        {
+            let statshunters_url = localStorage.getItem("statshunters_url")
+            if (statshunters_url) {
+                $("#statshunters_url").val(statshunters_url);
+                $( 'button#bImportStatsHunters' ).click();
+            }
+        }
+        $("#bImportStatsHuntersReset").click(function() {
+            localStorage.removeItem("statshunters_url");
+            if (maxSquare) {
+                maxSquare.remove();
+                maxSquare = false;
+            }
+            $("#statshunters_url").val("");
+            missing_tiles = [];
+            is_visited = false;
+            displayed_tiles.clear();
+            tilesLayerGroup.clearLayers();
+            updateMapTiles();
+        })
 
         var selectLoc = false;
         var markers = {};
