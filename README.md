@@ -12,7 +12,7 @@ Requirements:
 - python 3.x
 
 
-Open a terminal window and na`vigate to the folder that you want
+Open a terminal window and navigate to the folder that you want
 to download route-tiles into.
 Write in the terminal window
 
@@ -132,6 +132,10 @@ On the map, you can select tiles to visit, just by clicking on it. Same to
 unselect a tile.
 
 **Be careful**: Don't add to much tiles. The time of computation increase exponentially !
+**Tips**:
+- Don't add trivial tiles
+- Split your route is several ones by defining intermediate points and join then with merge function
+
 
 #### Download route
 
@@ -171,7 +175,8 @@ and the missing tiles.
 - [ ] [Improvement] Add description to buttons
 - [ ] [Improvement] Add a way to reload tiles data (in case of data evolution on OSM server)
 - [ ] [Bug] Session management has no timeout
-- [ ] [Bug] Turnaround price don't find the better route
+- [ ] [Improvement] Route management (multiple segments with tiles)
+- [ ] [Improvement] Gpx import
 
 - [X] [Improvement] Add installation for python package
 - [X] [Improvement] Localization in FR and EN
@@ -180,3 +185,5 @@ and the missing tiles.
 - [X] [Bug] display if a tile has no entry point
 - [X] [Improvement] Add option to limit turn around (Turn around price)
 - [X] [Improvement] Add line command arguments for port
+- [X] [Bug] Turnaround price don't find the better route
+- [X] [Improvement] Use tiles from statshunters.com

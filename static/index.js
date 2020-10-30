@@ -3,13 +3,17 @@ $(document).ready(function(){
         'en': 'i18n/en.json',
         'fr': 'i18n/fr.json'
     }).done( function(){
-        if (localStorage.getItem('locale')) {
-            $.i18n().locale = localStorage.getItem('locale');
+        let storage_locale = localStorage.getItem('locale')
+        if (storage_locale) {
+            let val = $("#switch-locale").find('option[data-locale="'+storage_locale+'"]').val();
+            $("#switch-locale").val(val);
+            $.i18n().locale = storage_locale;
         }
-        $('.switch-locale').on('click', 'a', function(e){
+
+        $('#switch-locale').on('change', function(e){
             e.preventDefault();
-            localStorage.setItem('locale', $(this).data('locale'));
-            $.i18n().locale = $(this).data('locale');
+            localStorage.setItem('locale', $(this).find(':selected').data('locale'));
+            $.i18n().locale = $(this).find(':selected').data('locale');
             $('body').i18n();
         })
         $('body').i18n();
@@ -110,9 +114,13 @@ $(document).ready(function(){
 
         var displayed_tiles = new Map();
         var selected_tiles = []
+
         var missing_tiles = []
+        var is_visited = false
+
         var visited_tiles = []
         var error_tiles = []
+
 
         function updateMapTiles(e) {
             console.log("updateMapTiles()");
@@ -135,7 +143,7 @@ $(document).ready(function(){
                             let color = 'blue';
                             let weight = 0.1;
                             let opacity = 0;
-                            if (missing_tiles.includes(tile_id)) {
+                            if (missing_tiles.includes(tile_id) ^ is_visited) {
                                 color = 'red';
                                 weight = 1.0;
                             }
@@ -358,6 +366,38 @@ $(document).ready(function(){
                             maxSquare.remove();
                             maxSquare = false;
                         }
+                        is_visited = false
+                        missing_tiles = data.tiles
+                        maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
+                        displayed_tiles.clear();
+                        tilesLayerGroup.clearLayers();
+                        mymap.fitBounds(maxSquare.getBounds().pad(0.1));
+                    }
+                    else {
+                        alert(data.message);
+                    }
+                }
+            });
+
+            e.preventDefault();
+        });
+
+        $("#statshunters_url").val(localStorage.getItem("statshunters_url") || "")
+        $( 'button#bImportStatsHunters' ).click(function ( e ) {
+            var data;
+
+            $.ajax({
+                type: 'GET',
+                url: 'statshunters',
+                data: {url: $("#statshunters_url").val()},
+                success: function ( data ) {
+                    if (data.status=="OK") {
+                        if (maxSquare) {
+                            maxSquare.remove();
+                            maxSquare = false;
+                        }
+                        localStorage.setItem("statshunters_url", $("#statshunters_url").val());
+                        is_visited = true
                         missing_tiles = data.tiles
                         maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
                         displayed_tiles.clear();

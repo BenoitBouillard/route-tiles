@@ -702,6 +702,7 @@ class RouteServer(object):
 
     @property
     def is_complete(self):
+        if not self.myRouter: return True
         return self.myRouter.is_complete
 
 

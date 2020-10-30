@@ -16,5 +16,8 @@
   "message-state-wait": "Wait...",
   "message-state-fail": "FAIL",
   "message-turnaround-cost": "Turnaround cost",
-  "message-cost-no": "no cost"
+  "message-cost-no": "no cost",
+  "msg-import-statshunters": "Import",
+  "msg-import-statshunters-message": "Sharelink from",
+  "msg-title-missing-tiles": "Missing tiles import"
 }

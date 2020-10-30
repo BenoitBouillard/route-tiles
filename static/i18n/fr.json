@@ -16,5 +16,9 @@
   "message-state-wait": "Attente...",
   "message-state-fail": "ERREUR",
   "message-turnaround-cost": "Coût du demi tour",
-  "message-cost-no": "aucun"
+  "message-cost-no": "aucun",
+  "msg-import-statshunters": "Importer",
+  "msg-import-statshunters-message": "Url de partage de",
+  "msg-title-missing-tiles": "Import carrés manquants"
+
 }

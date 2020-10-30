@@ -16,6 +16,9 @@ from pprint import pprint
 from urllib import parse
 
 from tilesrouter import RouteServer, compute_missing_kml, latlons_to_gpx, tiles_to_kml
+from statshunters import get_statshunters_activities, tiles_from_activities, compute_max_square
+from tile import coord_from_tile
+
 
 PORT = 8000
 
@@ -74,6 +77,25 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(message.encode('utf-8'))
 
+    def do_GET_statshunters(self):
+        parsed_path = parse.urlparse(self.path)
+        qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
+        url = qs['url'][0]
+
+        data_folder = Path(__file__).parent.joinpath('data')
+        data_folder.mkdir(exist_ok=True)
+        folder = get_statshunters_activities(url, data_folder)
+
+        tiles = tiles_from_activities(folder)
+
+        max_square, max_square_x, max_square_y = compute_max_square(tiles)
+
+        max_square_coord = (coord_from_tile(max_square_x, max_square_y),
+                            coord_from_tile(max_square_x + max_square, max_square_y + max_square))
+
+        self.wfile.write(json.dumps({'status': 'OK', 'tiles': list(tiles),
+                                     'maxSquare': max_square_coord}).encode('utf-8'))
+
     def do_GET_start_route(self):
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
@@ -118,6 +140,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         answer = {'status': "OK"}
+
         if self.session.routeServer.is_complete:
             answer['state'] = 'complete'
         else:

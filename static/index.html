@@ -41,12 +41,13 @@
         </div>
     </div>
     <div class="column">
-        <form id="set_kml">
-            <div class="custom-file">
-                <input class="custom-file-input" id="file" type="file">
-                <label class="custom-file-label" data-browse="Selectionner..." data-i18n="msg-missing-tiles-file" for="file">Fichier KML des tiles manquants</label>
-            </div>
-        </form>
+
+        <select id="switch-locale" class="" style="position:absolute;top:0;right:0;">
+            <option data-locale="en" href="#">English</option> -
+            <option data-locale="fr" href="#">Français</option>
+        </select>
+
+
 
         <div>
             <div class="btn-group">
@@ -162,11 +163,50 @@
               </label>
             </div>
         </div>-->
-        <div class="switch-locale">
+
+        <h3 data-i18n="msg-title-missing-tiles"></h3>
+
+        <div class="accordion" id="accordion-import">
+            <div class="card">
+                <button class="card-header btn btn-link btl-block text-left" type="button"
+                        data-toggle="collapse" data-target="#collapse_statshunters"
+                        aria-expanded="true" aria-controls="collapse_statshuters">
+                    StatsHunters
+                </button>
+            </div>
+            <div id="collapse_statshunters" class="collapse hide" data-parent="#accordion-import">
+                <div class="card-body">
+                    <span data-i18n="msg-import-statshunters-message"></span>
+                    <a href="https://statshunters.com/share">statshunters.com</a>
+                    <input id="statshunters_url" name="statshunters_url" type="text" />
+                    <button class="btn btn-primary" id="bImportStatsHunters" data-i18n="msg-import-statshunters"></button>
+                </div>
+            </div>
+            <div class="card">
+                <button class="card-header btn btn-link btl-block text-left" type="button"
+                        data-toggle="collapse" data-target="#collapse_veloviewer"
+                        aria-expanded="false" aria-controls="collapse_veloviewer">
+                    Veloviewer
+                </button>
+            </div>
+            <div id="collapse_veloviewer" class="collapse hide" data-parent="#accordion-import">
+                <div class="card-body">
+                    <form id="set_kml">
+                        <div class="custom-file">
+                            <input class="custom-file-input" id="file" type="file">
+                            <label class="custom-file-label" data-browse="Selectionner..." data-i18n="msg-missing-tiles-file" for="file">Fichier KML des tiles manquants</label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!--div id="switch-locale" class="dropdown">
             <span data-i18n="message-switch-language"></span>
             <a data-locale="en" href="#">English</a> -
             <a data-locale="fr" href="#">Français</a>
-        </div>
+        </div-->
+
 
     </div>
 </div>
