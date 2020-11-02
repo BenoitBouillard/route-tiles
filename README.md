@@ -152,15 +152,11 @@ It is also possible to store several routes in the "Routes" section.
 Give a name and click on "Add" button.
 Then you can highlight previous route, rename, remove or download them.
 
-It is possible also to merge route with the "+" button:
+It is possible also to merge routes with the "+" button:
 1. select the first route
 1. select thee "+" button (it will highlight it)
 1. select the second route to add.
    It will add the second route to the first one and remove the second.
-   You can continue by adding a third route.
-1. deselect thee "+" button to exit the merge mode. 
-   **Don't forget to exit merge mode** Otherwise, it will merge the next route
-   you want to select. 
    
    
 #### Missing tiles import

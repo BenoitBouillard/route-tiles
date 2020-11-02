@@ -610,7 +610,7 @@ $(document).ready(function(){
                         saved_traces[previous_pos].setStyle({color:'aqua'});
                         $('div#traces-list>.active').removeClass('active');
                         $('#merge-trace').removeClass('btn-primary');
-                        $('#trace-button-group>button').prop("disabled", true);
+                        $('#trace-button-group').hide();
                     } else {
                         let a = saved_traces[previous_pos]
                         let b = saved_traces[pos]
@@ -622,6 +622,7 @@ $(document).ready(function(){
                         saved_traces.splice(pos, 1);
                         $(this).remove();
                         refresh_localstorage_traces();
+                        $('#merge-trace').removeClass('btn-primary');
                     }
                 } else {
                     if (previous_pos>=0) {
@@ -631,13 +632,13 @@ $(document).ready(function(){
                     if (pos != previous_pos) {
                         $(this).addClass('active');
                         saved_traces[pos].setStyle({color:'blue'}).bringToFront();
-                        $('#trace-button-group>button').prop("disabled", false);
+                        $('#trace-button-group').show();
                     } else {
-                        $('#trace-button-group>button').prop("disabled", true);
+                        $('#trace-button-group').hide();
                     }
                 }
             });
-            $('#trace-button-group>button').prop("disabled", true);
+            $('#trace-button-group').hide();
 
             $('#remove-trace').on('click', function(e) {
                 let pos = $('div#traces-list>.active').index();

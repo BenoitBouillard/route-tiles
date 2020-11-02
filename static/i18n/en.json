@@ -26,5 +26,9 @@
   "msg-config-language": "Language",
   "msg-config-mode": "Mode",
   "msg-route-name": "Route name",
-  "msg-download-filename": "File name"
+  "msg-download-filename": "File name",
+  "msg-button-rename": "Rename the trace",
+  "msg-button-download": "Download trace",
+  "msg-button-merge": "Merge with next selected route",
+  "msg-button-delete": "Delete route"
 }

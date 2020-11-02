@@ -26,6 +26,10 @@
   "msg-config-language": "Langue",
   "msg-config-mode": "Mode",
   "msg-route-name": "Nom de la route",
-  "msg-download-filename": "Nom du fichier"
+  "msg-download-filename": "Nom du fichier",
+  "msg-button-rename": "Renommer la route",
+  "msg-button-download": "Télécharger la route",
+  "msg-button-merge": "Fusionner avec la prochaine route sélectionnée",
+  "msg-button-delete": "Supprimer la route"
 
 }
