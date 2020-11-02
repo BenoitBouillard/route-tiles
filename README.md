@@ -1,9 +1,11 @@
 # Route Tiles project
 
+[TOC]
+
 ## Motivation
 
 This project objective is to compute route to explore tiles, by cycling or running.
-For "tiles" information, see https://www.statshunters.com or https://veloviewer.com.
+For "tiles" information, see [statshunters](https://www.statshunters.com) or [veloviewer](https://veloviewer.com).
 
 ## Installation guide
 
@@ -16,25 +18,40 @@ Open a terminal window and navigate to the folder that you want
 to download route-tiles into.
 Write in the terminal window
 
-``` shell
+````shell
 git clone https://github.com/BenoitBouillard/route-tiles.git
-```
+````
+
+on future, you can perform a pull request to get the latest version:
+
+````shell
+git pull
+````
 
 followed by 
 
-``` shell
+```shell
 cd route-tiles
 ```
 
 and at last to install python package
 
-``` shell
+```shell
 pip install -r requirements.txt
 ```
+
+
+To generate html documentation from this readme:
+
+````shell
+python -m markdown README.md -f static\help.html -x extra -x toc
+````
+
 
 ## User manual
 
 There are 2 parts:
+
 - the server
 - the user interface
 
@@ -42,6 +59,7 @@ There are 2 parts:
 
 #### Server role
 The server receive requests from the user interface and compute the route by:
+
 - create http server for user interface
 - download OpenStreetMap tiles
 - find the nearest point of start/stop point
@@ -53,29 +71,32 @@ The server receive requests from the user interface and compute the route by:
 The server is a python script. To launch it, 
 run this command in a terminal from the installation folder:
 
-``` shell
+```shell
 python route-tile-server.py
 ```
 
 A message should be displayed:
 
-``` shell
+```shell
 serving at port 8000
 ```
 
 It is possible to change the port with --port option:
-``` shell
+
+```shell
 >python route-tile-server.py --port 80
 serving at port 80
 ```
+
 
 ### User interface
 
 Once the server is running, it is possible to use the user interface.
 It is a web page. On the same computer than the server, 
-it is accessible with url http://localhost:8000
+it is accessible with url [http://localhost:8000](http://localhost:8000)
 
 To find a route, several information are mandatory or possible:
+
 - displacement mode
 - start/end position
 - tiles to visit
@@ -84,6 +105,7 @@ When there is enough information, a route request will be send to the server
 after a few seconds.
 
 The status of the routing is displayed:
+
 - "wait..." Wait a few seconds before sending the request to the server
 - "ask for route..." The request has been send and waiting for the answer
 - "searching..." Route searching in progress. The map will display its current optimal route
@@ -95,6 +117,7 @@ Data are stored locally by the browser. If you refresh the page
 #### Displacement mode
 
 It is possible to choose from several modes:
+
 - **Route**: it will use only asphalt: road, cycle path if asphalt. 
              Avoid major road
 - **Chemin**: use any path
@@ -117,8 +140,10 @@ Start position is mandatory. End position is optional.
 If there is no end position, the route will be a loop 
 (return to the start point).
 
-To define the start or end position, clic on the "Départ" or "Arrivée" button 
+To define the start or end position, clic on the "Start" or "End" button 
 and then on map for the position. A marker will be displayed.
+
+It is possible to move markers directly on the map.
 
 It is possible to remove start and end position with the trash bin icon 
 on the right of the button.
@@ -132,10 +157,14 @@ On the map, you can select tiles to visit, just by clicking on it. Same to
 unselect a tile.
 
 **Be careful**: Don't add to much tiles. The time of computation increase exponentially !
+
+
 **Tips**:
+
 - Don't add trivial tiles
 - Split your route is several ones by defining intermediate points and join then with merge function
 
+You can remove all marked tiles with "Clear tiles" button.
 
 #### Download route
 
@@ -153,6 +182,7 @@ Give a name and click on "Add" button.
 Then you can highlight previous route, rename, remove or download them.
 
 It is possible also to merge routes with the "+" button:
+
 1. select the first route
 1. select thee "+" button (it will highlight it)
 1. select the second route to add.
@@ -166,13 +196,14 @@ You can import data from statshunters (better way) or veloviewer:
 
 ##### StatsHunters
 StatsHunters.com offer the possibility to create a link to share your personal page with others.
-You have to create sharelink on https://statshunters.com/share page and copy paste the full link
+You have to create sharelink on [https://statshunters.com/share](https://statshunters.com/share) page and copy paste the full link
  (something like https://www.statshunters.com/share/abcdef123456) on the page and import.
 
 ##### Veloviewer
-veloviewer.com can export a kml file of missing tiles around your max square.
+(https://veloviewer.com)[veloviewer.com] can export a kml file of missing tiles around your max square.
 You can import this file to display directly your max square 
 and the missing tiles.
+
 
 ## TODO list
 
@@ -183,8 +214,7 @@ and the missing tiles.
 - [ ] [Bug] Session management has no timeout
 - [ ] [Improvement] Route management (multiple segments with tiles)
 - [ ] [Improvement] Gpx import
-- [ ] [Bug] Caractères interdits dans les gpx
-
+- [ ] [Bug] Forbidden chars in gpx issue
 - [X] [Improvement] Add installation for python package
 - [X] [Improvement] Localization in FR and EN
 - [X] [Improvement] Save routes locally

@@ -38,10 +38,20 @@ class SessionElement(object):
 
 
 def check_sessions():
-    for session in list(sessionDict):
-        if datetime.now() - sessionDict[session].last_access > timedelta(0,0,0,0,10):
-            print("Remove session ", session)
-            sessionDict.pop(session)
+    for session_id in list(sessionDict):
+        session = sessionDict[session_id]
+        if session.routeServer.is_complete:
+            timeout = timedelta(0,0,0,0,10) # 10min
+        else:
+            #timeout = timedelta(0,10) # 10s
+            timeout = timedelta(0,0,0,0,10) # 10min
+
+        if datetime.now() - session.last_access > timeout:
+            print("Remove session ", session_id)
+            if not session.routeServer.is_complete:
+                print("  abort previous routing")
+                session.routeServer.myRouter.abort()
+            sessionDict.pop(session_id)
 
 
 

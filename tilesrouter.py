@@ -705,6 +705,10 @@ class RouteServer(object):
         if not self.myRouter: return True
         return self.myRouter.is_complete
 
+    def abort(self):
+        if self.myRouter:
+            self.myRouter.abort()
+
 
 if __name__ == '__main__':
     from pprint import pprint
