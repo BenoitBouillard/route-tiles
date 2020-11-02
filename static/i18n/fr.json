@@ -19,6 +19,13 @@
   "message-cost-no": "aucun",
   "msg-import-statshunters": "Importer",
   "msg-import-statshunters-message": "Url de partage de",
-  "msg-title-missing-tiles": "Import carrés manquants"
+  "msg-title-missing-tiles": "Import carrés manquants",
+  "msg-section-routes": "Routes sauvegardées",
+  "msg-section-configuration": "Configuration",
+  "msg-section-route": "Itinéraire",
+  "msg-config-language": "Langue",
+  "msg-config-mode": "Mode",
+  "msg-route-name": "Nom de la route",
+  "msg-download-filename": "Nom du fichier"
 
 }

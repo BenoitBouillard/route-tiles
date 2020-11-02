@@ -9,7 +9,7 @@ import string
 import struct
 import zlib
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 from pathlib import Path
 from pprint import pprint
@@ -31,6 +31,18 @@ class SessionElement(object):
 
     def __init__(self):
         self.routeServer = RouteServer()
+        self.last_access = datetime.now()
+
+    def refresh(self):
+        self.last_access = datetime.now()
+
+
+def check_sessions():
+    for session in list(sessionDict):
+        if datetime.now() - sessionDict[session].last_access > timedelta(0,0,0,0,10):
+            print("Remove session ", session)
+            sessionDict.pop(session)
+
 
 
 def generate_random(length):
@@ -318,6 +330,8 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             self.sessionId = generate_random(8)
             session_object = SessionElement()
             sessionDict[self.sessionId] = session_object
+            session_object.refresh()
+        check_sessions()
         return session_object
 
 

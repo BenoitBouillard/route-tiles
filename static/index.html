@@ -10,17 +10,25 @@
 
     <!--<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />-->
 
-    <link crossorigin="" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" rel="stylesheet"/>
+    <link crossorigin="" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+          integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+          rel="stylesheet"/>
 
-    <link crossorigin="anonymous" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" rel="stylesheet">
+    <link crossorigin="anonymous" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" rel="stylesheet">
 
-    <script crossorigin="" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
-    <script crossorigin="anonymous" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script crossorigin=""
+            integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+            src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.7/jquery.i18n.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.7/jquery.i18n.messagestore.min.js"></script>
 
-    <script crossorigin="anonymous" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-    <script crossorigin="anonymous" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    <script crossorigin="anonymous" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+            src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script crossorigin="anonymous" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+            src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bs-custom-file-input/dist/bs-custom-file-input.min.js"></script>
 
     <script src="index.js"></script>
@@ -29,42 +37,41 @@
         label.custom-file-label {
             overflow:hidden;
         }
+
     </style>
 
 </head>
 <body>
 
 
-<div class="row">
-    <div class="column">
-        <div id="mapid" style="width: 850px; height: 700px;">
-        </div>
-    </div>
-    <div class="column">
-
-        <select id="switch-locale" class="" style="position:absolute;top:0;right:0;">
-            <option data-locale="en" href="#">English</option> -
-            <option data-locale="fr" href="#">Français</option>
-        </select>
-
-
-
-        <div>
-            <div class="btn-group">
-                <button class="btn btn-info" data-mode="roadcycle" id="mode-selection" type="button">Route</button>
-                <button aria-expanded="false" aria-haspopup="true" class="btn btn-info dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" type="button">
-                    <span class="sr-only">Toggle Dropdown</span>
-                </button>
-                <div class="dropdown-menu">
-                    <a class="dropdown-item" data-i18n="message-mode-roadcycle" data-mode="roadcycle" href="#"></a>
-                    <a class="dropdown-item" data-i18n="message-mode-foot" data-mode="foot" href="#"></a>
-                    <a class="dropdown-item" data-i18n="message-mode-trail" data-mode="trail" href="#"></a>
-                </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div id="mapid" style="height: 700px;">
             </div>
+        </div>
+        <div class="col-md-4">
+
+            <h3 data-i18n="msg-section-configuration">Configuration</h3>
 
             <div class="form-group row">
-                <label class="col-sm-6 col-form-label" data-i18n="message-turnaround-cost">Turnaround cost</label>
-                <select class="col-sm-6" id="turnaround-cost">
+                <label for="switch-locale" class="col-sm-8 col-form-label" data-i18n="msg-config-language"></label>
+                <select id="switch-locale" class="col-sm-4 form-control">
+                    <option data-locale="en" href="#">English</option>
+                    <option data-locale="fr" href="#">Français</option>
+                </select>
+            </div>
+            <div class="form-group row">
+                <label for="mode-selection" class="col-sm-8 col-form-label" data-i18n="msg-config-mode"></label>
+                <select id="mode-selection" class="col-sm-4 form-control" >
+                    <option data-i18n="message-mode-roadcycle" data-mode="roadcycle" href="#">Roadcycle</option>
+                    <option data-i18n="message-mode-foot" data-mode="foot" href="#">Foot</option>
+                    <option data-i18n="message-mode-trail" data-mode="trail" href="#">Trail</option>
+                </select>
+            </div>
+            <div class="form-group row">
+                <label for="turnaround-cost" class="col-sm-8 col-form-label" data-i18n="message-turnaround-cost"></label>
+                <select id="turnaround-cost" class="col-sm-4 form-control">
                     <option data-i18n="message-cost-no" data-cost="0" href="#">No cost</option>
                     <option data-cost="0.1" href="#">100m</option>
                     <option data-cost="0.2" href="#">200m</option>
@@ -75,146 +82,206 @@
                 </select>
             </div>
 
-        </div>
 
 
-        <div aria-label="Starting point" class="btn-group" role="group">
-            <button class="btn btn-primary" data-i18n="message-start-button" id="bStart">message-start-button</button>
-            <!--input type="text" id="start" name="start" /-->
-            <button class="btn btn-danger" id="bClearStart">
-                <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                    <path clip-rule="evenodd" d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z" fill-rule="evenodd"/>
-                </svg>
-            </button>
-        </div>
-        <button class="btn btn-primary" id="bRevert">
-            <svg class="bi bi-arrow-left-right" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em" xmlns="http://www.w3.org/2000/svg">
-                <path clip-rule="evenodd" d="M12.146 9.646a.5.5 0 01.708 0l3 3a.5.5 0 010 .708l-3 3a.5.5 0 01-.708-.708L14.793 13l-2.647-2.646a.5.5 0 010-.708z" fill-rule="evenodd"/>
-                <path clip-rule="evenodd" d="M4 13a.5.5 0 01.5-.5H15a.5.5 0 010 1H4.5A.5.5 0 014 13zm3.854-9.354a.5.5 0 010 .708L5.207 7l2.647 2.646a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 01.708 0z" fill-rule="evenodd"/>
-                <path clip-rule="evenodd" d="M4.5 7a.5.5 0 01.5-.5h10.5a.5.5 0 010 1H5a.5.5 0 01-.5-.5z" fill-rule="evenodd"/>
-            </svg>
-        </button>
-        <div aria-label="Ending point" class="btn-group" role="group">
-            <button class="btn btn-primary" data-i18n="message-end-button" id="bEnd">Arrivée</button>
-            <!--input type="text" id="end" name="end" /-->
-            <button class="btn btn-danger" id="bClearEnd">
-                <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                    <path clip-rule="evenodd" d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z" fill-rule="evenodd"/>
-                </svg>
-            </button>
-        </div>
+            <div>
 
-        <div>
 
-            <div aria-label="menu" class="" id="run-button-group" role="group">
-                <!--<button type="button" class="btn btn-success" id="route">Chercher</button>-->
-                <button class="btn btn-warning" data-i18n="message-clear-tiles-button" id="clear-tiles" type="button">Effacer les carrés</button>
-                <!--<button type="button" class="btn btn-info" id="export-tiles">Exporter les carrés en KML</button>-->
             </div>
 
-        </div>
+            <h3 data-i18n="msg-section-route">Itineraire</h3>
 
-        <p id="length"></p>
-        <p id="message"></p>
-        <div>
-            <input id="gpxFilename" name="gpxFilename" type="text" />
-            <button class="btn btn-primary" id="bGenerateGpx">
-                <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30" />
-                </svg>
-            </button>
-            <a class="d-none btn btn-info" download href="" id="gpxDownload">Télécharger</a>
-            <p id="gpxMessage"></p>
-        </div>
 
-        <h3>Routes</h3>
-        <div>
-            <input id="traceName" name="traceName" type="text" />
-            <button class="btn btn-primary" data-i18n="message-routes-add-button" id="addTrace">Add</button>
-            <div aria-label="menu" class="btn-group" id="trace-button-group" role="group" style="float:right;">
-                <button class="btn btn-outline-info" data-i18n="message-routes-rename" id="rename-trace"type="button">Renommer</button>
-                <button class="btn btn-outline-info" id="togpx-trace" type="button">
-                    <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30" />
-                    </svg>
+            <div aria-label="Starting point" class="btn-group" role="group">
+                <button class="btn btn-primary" data-i18n="message-start-button" id="bStart">Start
                 </button>
-                <button class="btn btn-outline-info" id="merge-trace" type="button">
-                    <svg fill="none" height="1em" id="i-merge" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 20 20" width="1em" xmlns="http://www.w3.org/2000/svg">
-                        <path clip-rule="evenodd" d="M10 5.5a.5.5 0 01.5.5v4a.5.5 0 01-.5.5H6a.5.5 0 010-1h3.5V6a.5.5 0 01.5-.5z" fill-rule="evenodd"/>
-                        <path clip-rule="evenodd" d="M9.5 10a.5.5 0 01.5-.5h4a.5.5 0 010 1h-3.5V14a.5.5 0 01-1 0v-4z" fill-rule="evenodd"/>
-                    </svg>
-                </button>
-                <button class="btn btn-outline-danger" id="remove-trace" type="button">
-                    <svg fill="none" height="1em" id="i-trash" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M28 6 L6 6 8 30 24 30 26 6 4 6 M16 12 L16 24 M21 12 L20 24 M11 12 L12 24 M12 6 L13 2 19 2 20 6" />
+                <!--input type="text" id="start" name="start" /-->
+                <button class="btn btn-danger" id="bClearStart">
+                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
+                        <path clip-rule="evenodd"
+                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
+                              fill-rule="evenodd"/>
                     </svg>
                 </button>
             </div>
-        </div>
-        <div class="list-group" id="traces-list">
-        </div>
-        <!--<div>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" value="" id="show-tiles">
-              <label class="form-check-label" for="show-tiles">
-                Montrer les carrés
-              </label>
-            </div>
-        </div>-->
-
-        <h3 data-i18n="msg-title-missing-tiles"></h3>
-
-        <div class="accordion" id="accordion-import">
-            <div class="card">
-                <button class="card-header btn btn-link btl-block text-left" type="button"
-                        data-toggle="collapse" data-target="#collapse_statshunters"
-                        aria-expanded="true" aria-controls="collapse_statshuters">
-                    StatsHunters
+            <button class="btn btn-primary" id="bRevert">
+                <svg class="bi bi-arrow-left-right" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path clip-rule="evenodd"
+                          d="M12.146 9.646a.5.5 0 01.708 0l3 3a.5.5 0 010 .708l-3 3a.5.5 0 01-.708-.708L14.793 13l-2.647-2.646a.5.5 0 010-.708z"
+                          fill-rule="evenodd"/>
+                    <path clip-rule="evenodd"
+                          d="M4 13a.5.5 0 01.5-.5H15a.5.5 0 010 1H4.5A.5.5 0 014 13zm3.854-9.354a.5.5 0 010 .708L5.207 7l2.647 2.646a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 01.708 0z"
+                          fill-rule="evenodd"/>
+                    <path clip-rule="evenodd" d="M4.5 7a.5.5 0 01.5-.5h10.5a.5.5 0 010 1H5a.5.5 0 01-.5-.5z"
+                          fill-rule="evenodd"/>
+                </svg>
+            </button>
+            <div aria-label="Ending point" class="btn-group" role="group">
+                <button class="btn btn-primary" data-i18n="message-end-button" id="bEnd">End</button>
+                <!--input type="text" id="end" name="end" /-->
+                <button class="btn btn-danger" id="bClearEnd">
+                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
+                        <path clip-rule="evenodd"
+                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
+                              fill-rule="evenodd"/>
+                    </svg>
                 </button>
             </div>
-            <div id="collapse_statshunters" class="collapse hide" data-parent="#accordion-import">
-                <div class="card-body">
-                    <div>
-                        <span data-i18n="msg-import-statshunters-message"></span>
-                        <a href="https://statshunters.com/share">statshunters.com</a>
-                    </div>
-                    <input id="statshunters_url" name="statshunters_url" type="text" />
-                    <button class="btn btn-primary" id="bImportStatsHunters" data-i18n="msg-import-statshunters"></button>
-                    <button class="btn btn-outline-danger" id="bImportStatsHuntersReset">
-                        <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                            <path clip-rule="evenodd" d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z" fill-rule="evenodd"/>
+
+            <div>
+
+                <div aria-label="menu" class="" id="run-button-group" role="group">
+                    <!--<button type="button" class="btn btn-success" id="route">Chercher</button>-->
+                    <button class="btn btn-warning" data-i18n="message-clear-tiles-button" id="clear-tiles"
+                            type="button">Clear tiles
+                    </button>
+                    <!--<button type="button" class="btn btn-info" id="export-tiles">Exporter les carrés en KML</button>-->
+                </div>
+
+            </div>
+
+            <div id="spinner-searching" class="spinner-border spinner-border-sm text-primary" role="status" style="display:none;">
+                <span class="sr-only">Searching...</span>
+            </div>
+            <span id="message"></span>
+            <span id="length"></span>
+
+            <h6>Téléchargement</h6>
+            <div class="form-group row">
+                <label for="gpxFilename" class="col-form-label col-sm-4" data-i18n="msg-download-filename">Nom du fichier</label>
+                <input id="gpxFilename" name="gpxFilename" type="text" class="form-control col-sm-6"/>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="bGenerateGpx">
+                        <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30"/>
+                        </svg>
+                    </button>
+                </div>
+                <a class="d-none btn btn-info" download href="" id="gpxDownload">Télécharger</a>
+            </div>
+
+            <div id="gpxMessage" class="alert alert-danger">
+                test
+            </div>
+
+            <h3 data-i18n="msg-section-routes">Routes</h3>
+            <div class="form-group row">
+                <label for="traceName" class="col-form-label col-sm-4" data-i18n="msg-route-name">Name</label>
+                <input id="traceName" class="form-control col-sm-6" name="traceName" type="text"/>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="addTrace" type="button">
+                        <svg fill="none" height="1em" id="i-merge" stroke="currentcolor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2" viewBox="0 0 20 20" width="1em"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd"
+                                  d="M10 5.5a.5.5 0 01.5.5v4a.5.5 0 01-.5.5H6a.5.5 0 010-1h3.5V6a.5.5 0 01.5-.5z"
+                                  fill-rule="evenodd"/>
+                            <path clip-rule="evenodd"
+                                  d="M9.5 10a.5.5 0 01.5-.5h4a.5.5 0 010 1h-3.5V14a.5.5 0 01-1 0v-4z"
+                                  fill-rule="evenodd"/>
                         </svg>
                     </button>
                 </div>
             </div>
-            <div class="card">
-                <button class="card-header btn btn-link btl-block text-left" type="button"
-                        data-toggle="collapse" data-target="#collapse_veloviewer"
-                        aria-expanded="false" aria-controls="collapse_veloviewer">
-                    Veloviewer
-                </button>
+            <div>
+                <div aria-label="menu" class="btn-group" id="trace-button-group" role="group" style="">
+
+                    <button class="btn btn-outline-info" data-i18n="message-routes-rename" id="rename-trace"
+                            type="button">Renommer
+                    </button>
+                    <button class="btn btn-outline-info" id="togpx-trace" type="button">
+                        <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-outline-info" id="merge-trace" type="button">
+                        <svg fill="none" height="1em" id="i-merge" stroke="currentcolor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2" viewBox="0 0 20 20" width="1em"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd"
+                                  d="M10 5.5a.5.5 0 01.5.5v4a.5.5 0 01-.5.5H6a.5.5 0 010-1h3.5V6a.5.5 0 01.5-.5z"
+                                  fill-rule="evenodd"/>
+                            <path clip-rule="evenodd"
+                                  d="M9.5 10a.5.5 0 01.5-.5h4a.5.5 0 010 1h-3.5V14a.5.5 0 01-1 0v-4z"
+                                  fill-rule="evenodd"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-outline-danger" id="remove-trace" type="button">
+                        <svg fill="none" height="1em" id="i-trash" stroke="currentcolor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path d="M28 6 L6 6 8 30 24 30 26 6 4 6 M16 12 L16 24 M21 12 L20 24 M11 12 L12 24 M12 6 L13 2 19 2 20 6"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
-            <div id="collapse_veloviewer" class="collapse hide" data-parent="#accordion-import">
-                <div class="card-body">
-                    <form id="set_kml">
-                        <div class="custom-file">
-                            <input class="custom-file-input" id="file" type="file">
-                            <label class="custom-file-label" data-browse="Selectionner..." data-i18n="msg-missing-tiles-file" for="file">Fichier KML des tiles manquants</label>
+            <div class="list-group" id="traces-list">
+            </div>
+            <!--<div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="" id="show-tiles">
+                  <label class="form-check-label" for="show-tiles">
+                    Montrer les carrés
+                  </label>
+                </div>
+            </div>-->
+
+            <h3 data-i18n="msg-title-missing-tiles"></h3>
+
+            <div class="accordion" id="accordion-import">
+                <div class="card">
+                    <button class="card-header btn btn-link btl-block text-left" type="button"
+                            data-toggle="collapse" data-target="#collapse_statshunters"
+                            aria-expanded="true" aria-controls="collapse_statshuters">
+                        StatsHunters
+                    </button>
+                    <div id="collapse_statshunters" class="collapse card-body hide" data-parent="#accordion-import">
+                        <div>
+                            <span data-i18n="msg-import-statshunters-message"></span>
+                            <a href="https://statshunters.com/share">statshunters.com</a>
                         </div>
-                    </form>
+                        <input id="statshunters_url" class="form-control" name="statshunters_url" type="text"/>
+                        <button class="btn btn-primary" id="bImportStatsHunters"
+                                data-i18n="msg-import-statshunters"></button>
+                        <button class="btn btn-outline-danger" id="bImportStatsHuntersReset">
+                            <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20"
+                                 width="1.5em" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
+                                <path clip-rule="evenodd"
+                                      d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
+                                      fill-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <button class="card-header btn btn-link btl-block text-left" type="button"
+                            data-toggle="collapse" data-target="#collapse_veloviewer"
+                            aria-expanded="false" aria-controls="collapse_veloviewer">
+                        Veloviewer
+                    </button>
+                    <div id="collapse_veloviewer" class="collapse card-body hide" data-parent="#accordion-import">
+                        <form id="set_kml">
+                            <div class="custom-file">
+                                <input class="custom-file-input" id="file" type="file">
+                                <label class="custom-file-label" data-browse="Selectionner..."
+                                       data-i18n="msg-missing-tiles-file" for="file">Fichier KML des tiles
+                                    manquants</label>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!--div id="switch-locale" class="dropdown">
-            <span data-i18n="message-switch-language"></span>
-            <a data-locale="en" href="#">English</a> -
-            <a data-locale="fr" href="#">Français</a>
-        </div-->
-
 
     </div>
 </div>

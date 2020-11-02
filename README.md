@@ -187,6 +187,7 @@ and the missing tiles.
 - [ ] [Bug] Session management has no timeout
 - [ ] [Improvement] Route management (multiple segments with tiles)
 - [ ] [Improvement] Gpx import
+- [ ] [Bug] Caractères interdits dans les gpx
 
 - [X] [Improvement] Add installation for python package
 - [X] [Improvement] Localization in FR and EN

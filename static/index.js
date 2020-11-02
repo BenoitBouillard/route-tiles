@@ -222,7 +222,7 @@ $(document).ready(function(){
                 data: { 'sessionId': sessionId, 'findRouteId' : routeId },
                 success: function ( data ) {
                     state = data['state']
-                    $("p#message").text($.i18n("message-state-"+data['state']));
+                    $("#message").text($.i18n("message-state-"+data['state']));
                     if ('route' in data) {
                         routeId = data['findRouteId']
                         if (!routePolyline) {
@@ -230,11 +230,12 @@ $(document).ready(function(){
                         } else {
                             routePolyline.setLatLngs(data.route).bringToFront();
                         }
-                        $("p#length").text(parseFloat(data['length']).toFixed(2)+" km");
+                        $("#length").text(parseFloat(data['length']).toFixed(2)+" km");
                     }
                     if (data['state']!='complete') {
                         timeoutID = window.setTimeout(route_status, 1000, ++active_timeout);
                     } else {
+                        $("#spinner-searching").hide();
                         timeoutID = false;
                         $('button#addTrace').prop("disabled", false);
                     }
@@ -243,24 +244,18 @@ $(document).ready(function(){
         };
 
         { // MODE
-            function set_mode_selection(mode) {
-                $('#mode-selection').data('mode', mode);
-                $('#mode-selection').data('i18n', 'message-mode-'+mode);
-                $('#mode-selection').attr('data-i18n', 'message-mode-'+mode); // without this i18n don't work ! Why ?
-                $('#mode-selection').i18n();
+            let storage_mode = localStorage.getItem('mode')
+            if (storage_mode) {
+                let val = $("#mode-selection").find('option[data-mode="'+storage_mode+'"]').val();
+                $("#mode-selection").val(val);
             }
 
-            $('a.dropdown-item').on('click', function(e) {
-                if ($(this).data('mode') != $('#mode-selection').data('mode')) {
-                    set_mode_selection($(this).data('mode'));
-                    localStorage.setItem('mode', $(this).data('mode'));
-                    request_route();
-                }
+            $('#mode-selection').on('change', function(e) {
+                e.preventDefault();
+                $('#mode-selection').data('mode', $(this).find(':selected').data('mode'));
+                localStorage.setItem('mode', $(this).find(':selected').data('mode'));
+                request_route();
             });
-            let lmd = localStorage.getItem('mode')
-            if (lmd) {
-                set_mode_selection(lmd);
-            }
         }
 
         {
@@ -279,7 +274,9 @@ $(document).ready(function(){
         function start_route(timeout_id) {
             if (timeout_id != active_timeout) return;
             $('button#addTrace').prop("disabled", true);
-            $("p#message").text($.i18n("message-state-ask-route"));
+            $("#message").text($.i18n("message-state-ask-route"));
+            $("#length").text("");
+            $("#spinner-searching").show();
             let data = { 'sessionId'      : sessionId,
                          'start'          : latlonToQuery(markers['start'].getLatLng()),
                          'turnaroundCost':$("#turnaround-cost").find(':selected').data('cost') }
@@ -290,7 +287,7 @@ $(document).ready(function(){
                 data['end'] = data['start'];
             }
             data['tiles'] = selected_tiles
-            data['mode'] = $('#mode-selection').data('mode')
+            data['mode'] = $('#mode-selection').find(':selected').data('mode')
 
             // if (state=="complete") {
                 // routePolyline.setStyle({color:'blue'});
@@ -312,7 +309,8 @@ $(document).ready(function(){
                         route_status(timeout_id);
                     }
                     else {
-                        $("p#message").text($.i18n("message-state-fail")+":"+data['message']);
+                        $("#message").text($.i18n("message-state-fail")+":"+data['message']);
+                        $("#length").text("");
                         error_tiles = data.tiles;
                         for (let i=0; i<error_tiles.length; i++) {
                             let tile = displayed_tiles.get(error_tiles[i])
@@ -332,7 +330,8 @@ $(document).ready(function(){
             }
             if (!('start' in markers)) return;
             if (!('end' in markers) && selected_tiles.length==0) return;
-            $("p#message").text($.i18n("message-state-wait"));
+            $("#message").text($.i18n("message-state-wait"));
+            $("#length").text("");
 
             timeoutID = window.setTimeout(start_route, 2000, ++active_timeout);
         }
@@ -466,13 +465,16 @@ $(document).ready(function(){
             request_route();
     });
 
+        $("#gpxMessage").hide();
+
         $("button#bGenerateGpx").on("click", function(e) {
+            $("#gpxMessage").hide();
             $.getJSON({
                 url: 'generate_gpx',
                 data: { 'sessionId': sessionId, name : $("input#gpxFilename").val() },
                 success: function ( data ) {
                     if (data.status!="OK") {
-                        $("p#gpxMessage").text(data.message);
+                        $("#gpxMessage").text(data.message).show();
                     }
                     else {
                        $("a#gpxDownload").attr("href", data.path);
@@ -492,25 +494,32 @@ $(document).ready(function(){
             request_route();
         });
 
+        function add_marker(name, latlng) {
+            if ((name in markers) && markers[name]) {
+                markers[name].setLatLng(latlng);
+            } else {
+                markers[name] =  L.marker(latlng, {draggable: true, title: name}).addTo(mymap).on("dragend", function(e){
+                    localStorage.setItem(this.options.title, this.getLatLng().lat+","+this.getLatLng().lng);
+                    request_route();
+                });
+            }
+        }
+
         mymap.on("click", function (e) {
             if (selectLoc==false) return;
-            if ((selectLoc in markers) && markers[selectLoc]) {
-                markers[selectLoc].setLatLng(e.latlng);
-            } else {
-                markers[selectLoc] = L.marker(e.latlng).addTo(mymap);
-            }
+            add_marker(selectLoc, e.latlng);
             localStorage.setItem(selectLoc, e.latlng.lat+","+e.latlng.lng);
-           selectLoc = false;
-
+            selectLoc = false;
             request_route();
         });
 
+
         { // local Storage recovery
             let bounds = false;
-            function addMarker(name) {
+            function load_marker(name) {
                 let lcs = localStorage.getItem(name)
                 if (lcs) {
-                    markers[name] = L.marker(lcs.split(',')).addTo(mymap);
+                    add_marker(name, lcs.split(','));
                     if (bounds) {
                         bounds.extend(markers[name].getLatLng().toBounds(1000));
                     }
@@ -519,8 +528,8 @@ $(document).ready(function(){
                     }
                 }
             }
-            addMarker("start");
-            addMarker("end");
+            load_marker("start");
+            load_marker("end");
             selected_tiles = []
             let lcs = localStorage.getItem("selected_tiles")
             console.log(lcs)
@@ -584,7 +593,7 @@ $(document).ready(function(){
                 saved_traces.push(routePolyline.setStyle({color:'aqua'}));
                 routePolyline = false;
                 let name = $('#traceName').val();
-                let dist = $("p#length").text();
+                let dist = $("#length").text();
                 $('<a href="#" class="list-group-item list-group-item-action"><span>'+name+'</span><span class="badge badge-light" style="float:right;">'+dist+'</span></a>').appendTo('#traces-list')
                 $('button#addTrace').prop("disabled", true);
                 refresh_localstorage_traces();
@@ -593,6 +602,7 @@ $(document).ready(function(){
             $('button#addTrace').prop("disabled", true);
 
             $('div#traces-list').on('click', 'a', function(e) {
+                e.preventDefault();
                 let previous_pos = $('div#traces-list>.active').index();
                 let pos = $(this).index();
                 if ($('#merge-trace').hasClass('btn-primary')) {
@@ -662,6 +672,7 @@ $(document).ready(function(){
                 let trace = saved_traces[pos]
                 console.log("togpx-trace.click()")
                 let latlons = trace.getLatLngs().map(x => x.lat+","+x.lng);
+                $("#download-error-toast").toast('hide')
 
                 $.ajax({
                     type: "POST",
@@ -674,7 +685,7 @@ $(document).ready(function(){
                            $("a#gpxDownload")[0].click();
                         }
                         else {
-                           $("p#gpxMessage").text(data.message);
+                           $("#gpxMessage").text(data.message).show();
                         }
                     }
                 });
@@ -684,6 +695,7 @@ $(document).ready(function(){
 
         $('#export-tiles').on('click', function(e) {
             name = ""
+            $("#gpxMessage").hide();
             $.ajax({
                 type: "GET",
                 dataType: "json",
@@ -695,7 +707,7 @@ $(document).ready(function(){
                        $("a#gpxDownload")[0].click();
                     }
                     else {
-                       $("p#gpxMessage").text(data.message);
+                       $("p#gpxMessage").text(data.message).show();
                     }
                 }
             });

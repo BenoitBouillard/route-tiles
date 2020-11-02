@@ -19,5 +19,12 @@
   "message-cost-no": "no cost",
   "msg-import-statshunters": "Import",
   "msg-import-statshunters-message": "Sharelink from",
-  "msg-title-missing-tiles": "Missing tiles import"
+  "msg-title-missing-tiles": "Missing tiles import",
+  "msg-section-routes": "Saved routes",
+  "msg-section-configuration": "Configuration",
+  "msg-section-route": "Routing",
+  "msg-config-language": "Language",
+  "msg-config-mode": "Mode",
+  "msg-route-name": "Route name",
+  "msg-download-filename": "File name"
 }
