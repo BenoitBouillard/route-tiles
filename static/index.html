@@ -145,11 +145,13 @@
 
             </div>
 
-            <div id="spinner-searching" class="spinner-border spinner-border-sm text-primary" role="status" style="display:none;">
-                <span class="sr-only">Searching...</span>
+            <div class="alert alert-light" id="progress-message">
+                <div id="spinner-searching" class="spinner-border spinner-border-sm text-primary" role="status" style="display:none;">
+                    <span class="sr-only">Searching...</span>
+                </div>
+                <span id="message"></span>
+                <span class="badge badge-light" style="float:right;" id="length"></span>
             </div>
-            <span id="message"></span>
-            <span id="length"></span>
 
             <h6>Téléchargement</h6>
             <div class="form-group row">

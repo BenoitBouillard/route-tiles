@@ -163,20 +163,25 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         answer = {'status': "OK"}
 
-        if self.session.routeServer.is_complete:
-            answer['state'] = 'complete'
+        if self.session.routeServer.myRouter.error_code==0:
+            if self.session.routeServer.is_complete:
+                answer['state'] = 'complete'
+            else:
+                answer['state'] = 'searching'
+            answer['progress'] = self.session.routeServer.progress
+            route = self.session.routeServer.route
+            if route:
+                crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
+
+                if self.session.routeServer.is_complete or 'findRouteId' not in qs or crc != qs['findRouteId'][0]:
+                    answer['findRouteId'] = crc
+                    answer['length'] = route.length
+                    answer['route'] = route.routeLatLons
         else:
-            answer['state'] = 'searching'
+            answer['status'] = 'Fail'
+            answer['error_code'] = self.session.routeServer.myRouter.error_code
+            answer['error_args'] =self.session.routeServer.myRouter.error_args
 
-        answer['progress'] = self.session.routeServer.progress
-        route = self.session.routeServer.route
-        if route:
-            crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
-
-            if 'findRouteId' not in qs or crc != qs['findRouteId'][0]:
-                answer['findRouteId'] = crc
-                answer['length'] = route.length
-                answer['route'] = route.routeLatLons
 
         answer['sessionId'] = self.sessionId
         self.wfile.write(json.dumps(answer).encode('utf-8'))

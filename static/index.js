@@ -215,30 +215,51 @@ $(document).ready(function(){
         var sessionId = false;
         var state = false
 
+        function setMessageAlert(level) {
+            $("#progress-message").removeClass(function(index, className){
+                return (className.match(/(^|\s)alert-\S+/g)||[]).join('')
+            }).addClass('alert-'+level);
+        }
+
         function route_status(timeout_id) {
             if (timeout_id != active_timeout) return;
             $.getJSON({
                 url: 'route_status',
                 data: { 'sessionId': sessionId, 'findRouteId' : routeId },
                 success: function ( data ) {
-                    state = data['state']
-                    $("#message").text($.i18n("message-state-"+data['state']));
-                    if ('route' in data) {
-                        routeId = data['findRouteId']
-                        if (!routePolyline) {
-                            routePolyline = L.polyline(data.route, {color: '#FF0000', opacity:0.8}).addTo(mymap);
-                        } else {
-                            routePolyline.setLatLngs(data.route).bringToFront();
+                    if (data['status']=="OK") {
+                        state = data['state']
+                        $("#message").text($.i18n("message-state-"+data['state']));
+                        if ('route' in data) {
+                            routeId = data['findRouteId']
+                            if (!routePolyline) {
+                                routePolyline = L.polyline(data.route, {color: '#FF0000', opacity:0.8}).addTo(mymap);
+                            } else {
+                                routePolyline.setLatLngs(data.route).bringToFront();
+                            }
+                            $("#length").text(parseFloat(data['length']).toFixed(2)+" km");
                         }
-                        $("#length").text(parseFloat(data['length']).toFixed(2)+" km");
-                    }
-                    if (data['state']!='complete') {
-                        timeoutID = window.setTimeout(route_status, 1000, ++active_timeout);
+                        if (data['state']!='complete') {
+                            timeoutID = window.setTimeout(route_status, 1000, ++active_timeout);
+                        } else {
+                            setMessageAlert('success');
+                            $("#spinner-searching").hide();
+                            timeoutID = false;
+                            $('button#addTrace').prop("disabled", false);
+                        }
                     } else {
+                        $("#message").text($.i18n("message-state-fail")+":"+$.i18n("msg-error_"+data['error_code']));
+                        setMessageAlert('danger');
+                        $("#length").text("");
+                        error_tiles = data.error_args;
+                        for (let i=0; i<error_tiles.length; i++) {
+                            let tile = displayed_tiles.get(error_tiles[i])
+                            tile.error(1);
+                        }
                         $("#spinner-searching").hide();
                         timeoutID = false;
-                        $('button#addTrace').prop("disabled", false);
                     }
+
                 }
             });
         };
@@ -274,6 +295,7 @@ $(document).ready(function(){
         function start_route(timeout_id) {
             if (timeout_id != active_timeout) return;
             $('button#addTrace').prop("disabled", true);
+            setMessageAlert('info');
             $("#message").text($.i18n("message-state-ask-route"));
             $("#length").text("");
             $("#spinner-searching").show();
@@ -307,8 +329,8 @@ $(document).ready(function(){
                         }
                         error_tiles = []
                         route_status(timeout_id);
-                    }
-                    else {
+                    } else {
+                        setMessageAlert('danger');
                         $("#message").text($.i18n("message-state-fail")+":"+data['message']);
                         $("#length").text("");
                         error_tiles = data.tiles;
@@ -330,6 +352,7 @@ $(document).ready(function(){
             }
             if (!('start' in markers)) return;
             if (!('end' in markers) && selected_tiles.length==0) return;
+            setMessageAlert('info');
             $("#message").text($.i18n("message-state-wait"));
             $("#length").text("");
 

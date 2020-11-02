@@ -98,21 +98,26 @@ def debug_export_tiles(tiles):
                 hf.write("[{},{}],\n".format(*e.latlon))
         hf.write("];\n")
 
+ERR_NO = 0
+ERR_NO_TILE_ENTRY_POINT = 1
+ERR_ABORT_REQUEST = 2
+ERR_ROUTE_ERROR = 1000
 
 class MyRouter(object):
-    def __init__(self, router, start, end, tiles, config):
+    def __init__(self, router, start, end, tiles_ids, config):
         self.router = router
         self._min_route = None
         self.min_length = None
+        self.error_code = ERR_NO
+        self.error_args = ""
         self._exit = False
         self._complete = False
         self.start = start
         self.end = end
-        self.tiles = tiles
+        self.tiles_ids = tiles_ids
         self.progress = 100.0
         self.config = config
-
-        debug_export_tiles(tiles)
+        self.stored_tiles = {}
 
     def abort(self):
         self._exit = True
@@ -124,10 +129,36 @@ class MyRouter(object):
     def run(self):
         self.min_length = None
         self._min_route = None
+        self.error_code = ERR_NO
+        self.error_args = ""
 
+        selected_tiles = []
+        for t in self.tiles_ids:
+            if self._exit:
+                self.error_code = ERR_ABORT_REQUEST
+                return False
+
+            if t not in self.stored_tiles:
+                self.stored_tiles[t] = Tile(t)
+            tile = self.stored_tiles[t]
+            if Polygon(tile.linear_ring()).contains(Point(self.start.latlon)) or \
+                    Polygon(tile.linear_ring()).contains(Point(self.end.latlon)):
+                print("tile is in start or end")
+                continue
+            tile.get_entry_points(self.router)
+            selected_tiles.append(tile)
+            if not self.stored_tiles[t].entryNodeId:
+                self.error_code = ERR_NO_TILE_ENTRY_POINT
+                self.error_args = [t]
+                self._complete = True
+                return False
+
+        debug_export_tiles(selected_tiles)
         status, r = self.do_route_with_crossing_zone(self.start.nodeId, self.end.nodeId,
-                                                     frozenset(self.tiles), self.config)
+                                                     frozenset(selected_tiles), self.config)
         if status != "success":
+            self.error_code = ERR_ROUTE_ERROR
+            self.error_args = ""
             route = None
         else:
             route = Route(r, router=self.router)
@@ -670,16 +701,8 @@ class RouteServer(object):
         coord_dict = CoordDict(self.router)
         start_point = coord_dict.get(*start_loc)
         end_point = coord_dict.get(*end_loc)
-        selected_tiles = []
-        for t in tiles:
-            if t not in self.stored_tiles:
-                self.stored_tiles[t] = Tile(t)
-            selected_tiles.append(self.stored_tiles[t])
-            self.stored_tiles[t].get_entry_points(self.router)
-            if not self.stored_tiles[t].entryNodeId:
-                return False, "No entry point for tiles", [t]
 
-        self.myRouter = MyRouter(self.router, start_point, end_point, selected_tiles, config)
+        self.myRouter = MyRouter(self.router, start_point, end_point, tiles, config)
         if thread:
             self.thread = threading.Thread(target=self.myRouter.run)
             # Background thread will finish with the main program
