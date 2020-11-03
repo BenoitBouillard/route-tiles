@@ -132,6 +132,10 @@ class MyRouter(object):
         self.error_code = ERR_NO
         self.error_args = ""
 
+        coord_dict = CoordDict(self.router)
+        start_point = coord_dict.get(*self.start)
+        end_point = coord_dict.get(*self.end)
+
         selected_tiles = []
         for t in self.tiles_ids:
             if self._exit:
@@ -141,8 +145,8 @@ class MyRouter(object):
             if t not in self.stored_tiles:
                 self.stored_tiles[t] = Tile(t)
             tile = self.stored_tiles[t]
-            if Polygon(tile.linear_ring()).contains(Point(self.start.latlon)) or \
-                    Polygon(tile.linear_ring()).contains(Point(self.end.latlon)):
+            if Polygon(tile.linear_ring()).contains(Point(start_point.latlon)) or \
+                    Polygon(tile.linear_ring()).contains(Point(end_point.latlon)):
                 print("tile is in start or end")
                 continue
             tile.get_entry_points(self.router)
@@ -154,7 +158,7 @@ class MyRouter(object):
                 return False
 
         debug_export_tiles(selected_tiles)
-        status, r = self.do_route_with_crossing_zone(self.start.nodeId, self.end.nodeId,
+        status, r = self.do_route_with_crossing_zone(start_point.nodeId, end_point.nodeId,
                                                      frozenset(selected_tiles), self.config)
         if status != "success":
             self.error_code = ERR_ROUTE_ERROR
@@ -698,11 +702,8 @@ class RouteServer(object):
             self.mode = mode
             self.stored_tiles = {}
             self.router = Datastore(mode, cache_dir=str(Path.home().joinpath('.tilescache')))
-        coord_dict = CoordDict(self.router)
-        start_point = coord_dict.get(*start_loc)
-        end_point = coord_dict.get(*end_loc)
 
-        self.myRouter = MyRouter(self.router, start_point, end_point, tiles, config)
+        self.myRouter = MyRouter(self.router, start_loc, end_loc, tiles, config)
         if thread:
             self.thread = threading.Thread(target=self.myRouter.run)
             # Background thread will finish with the main program

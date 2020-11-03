@@ -13,6 +13,7 @@
   "message-state-searching": "Searching route...",
   "message-state-complete": "Route complete",
   "message-state-ask-route": "Ask for route...",
+  "message-state-cancel": "Stop",
   "message-state-wait": "Wait...",
   "message-state-fail": "FAIL",
   "msg-error_1": "No entry point for the tile",
@@ -33,5 +34,6 @@
   "msg-button-rename": "Rename the trace",
   "msg-button-download": "Download trace",
   "msg-button-merge": "Merge with next selected route",
-  "msg-button-delete": "Delete route"
+  "msg-button-delete": "Delete route",
+  "msg-subsection-download": "Download"
 }

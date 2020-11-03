@@ -1,4 +1,10 @@
 $(document).ready(function(){
+
+    // Add collapse indicator for sections
+    $('h3').each(function(){
+        $('<svg class="collapse-indicator" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" fill="none" stroke-linecap="round" d="M6.25 2.5 l7.5 7.5 l-7.5 7.5" /></svg>').prependTo($(this))
+    })
+
     $.i18n(/*{locale:'en'}*/).load({
         'en': 'i18n/en.json',
         'fr': 'i18n/fr.json'
@@ -250,6 +256,7 @@ $(document).ready(function(){
                     } else {
                         $("#message").text($.i18n("message-state-fail")+":"+$.i18n("msg-error_"+data['error_code']));
                         setMessageAlert('danger');
+                        $("#spinner-searching").hide();
                         $("#length").text("");
                         error_tiles = data.error_args;
                         for (let i=0; i<error_tiles.length; i++) {
@@ -332,6 +339,7 @@ $(document).ready(function(){
                     } else {
                         setMessageAlert('danger');
                         $("#message").text($.i18n("message-state-fail")+":"+data['message']);
+                        $("#spinner-searching").hide();
                         $("#length").text("");
                         error_tiles = data.tiles;
                         for (let i=0; i<error_tiles.length; i++) {
@@ -350,11 +358,15 @@ $(document).ready(function(){
                 window.clearTimeout(timeoutID);
                 timeoutID = false;
             }
-            if (!('start' in markers)) return;
-            if (!('end' in markers) && selected_tiles.length==0) return;
+            $("#length").text("");
+            if ((!('start' in markers)) || (!('end' in markers) && selected_tiles.length==0)) {
+                setMessageAlert('info');
+                $("#spinner-searching").hide();
+                $("#message").text($.i18n("message-state-cancel"));
+                return;
+            }
             setMessageAlert('info');
             $("#message").text($.i18n("message-state-wait"));
-            $("#length").text("");
 
             timeoutID = window.setTimeout(start_route, 2000, ++active_timeout);
         }

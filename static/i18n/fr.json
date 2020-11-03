@@ -14,6 +14,7 @@
   "message-state-complete": "Itinéraire terminé",
   "message-state-ask-route": "Demande d'itinéraire...",
   "message-state-wait": "Attente...",
+  "message-state-cancel": "Arrêt",
   "message-state-fail": "ERREUR",
   "msg-error_1": "Pas de point d'entrée pour le carré",
   "msg-error_2": "Demande d'arrêt",
@@ -33,6 +34,7 @@
   "msg-button-rename": "Renommer la route",
   "msg-button-download": "Télécharger la route",
   "msg-button-merge": "Fusionner avec la prochaine route sélectionnée",
-  "msg-button-delete": "Supprimer la route"
+  "msg-button-delete": "Supprimer la route",
+  "msg-subsection-download": "Téléchargement"
 
 }

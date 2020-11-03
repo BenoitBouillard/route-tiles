@@ -38,6 +38,7 @@ class SessionElement(object):
 
 
 def check_sessions():
+    print(sessionDict.keys())
     for session_id in list(sessionDict):
         session = sessionDict[session_id]
         if session.routeServer.is_complete:
@@ -119,6 +120,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
                                      'maxSquare': max_square_coord}).encode('utf-8'))
 
     def do_GET_start_route(self):
+        self.session = self.get_session()
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         start = [float(qs['start[]'][0]), float(qs['start[]'][1])]
@@ -159,34 +161,51 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(answer).encode('utf-8'))
 
     def do_GET_route_status(self):
+        self.session = self.get_session()
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         answer = {'status': "OK"}
 
-        if self.session.routeServer.myRouter.error_code==0:
-            if self.session.routeServer.is_complete:
-                answer['state'] = 'complete'
-            else:
-                answer['state'] = 'searching'
-            answer['progress'] = self.session.routeServer.progress
-            route = self.session.routeServer.route
-            if route:
-                crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
+        if self.session.routeServer.myRouter:
+            if self.session.routeServer.myRouter.error_code==0:
+                if self.session.routeServer.is_complete:
+                    answer['state'] = 'complete'
+                else:
+                    answer['state'] = 'searching'
+                answer['progress'] = self.session.routeServer.progress
+                route = self.session.routeServer.route
+                if route:
+                    crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
 
-                if self.session.routeServer.is_complete or 'findRouteId' not in qs or crc != qs['findRouteId'][0]:
-                    answer['findRouteId'] = crc
-                    answer['length'] = route.length
-                    answer['route'] = route.routeLatLons
+                    if self.session.routeServer.is_complete or 'findRouteId' not in qs or crc != qs['findRouteId'][0]:
+                        answer['findRouteId'] = crc
+                        answer['length'] = route.length
+                        answer['route'] = route.routeLatLons
+            else:
+                answer['status'] = 'Fail'
+                answer['error_code'] = self.session.routeServer.myRouter.error_code
+                answer['error_args'] =self.session.routeServer.myRouter.error_args
         else:
             answer['status'] = 'Fail'
-            answer['error_code'] = self.session.routeServer.myRouter.error_code
-            answer['error_args'] =self.session.routeServer.myRouter.error_args
+            answer['error_code'] = 1000
 
+        answer['sessionId'] = self.sessionId
+        self.wfile.write(json.dumps(answer).encode('utf-8'))
+
+    def do_GET_route_stop(self):
+        self.session = self.get_session()
+        parsed_path = parse.urlparse(self.path)
+        qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
+        answer = {'status': "OK"}
+
+        if not self.session.routeServer.is_complete:
+            self.session.routeServer.myRouter.abort()
 
         answer['sessionId'] = self.sessionId
         self.wfile.write(json.dumps(answer).encode('utf-8'))
 
     def do_GET_generate_gpx(self):
+        self.session = self.get_session()
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
 
@@ -241,7 +260,6 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = parse.urlparse(self.path)
-        self.session = self.get_session()
 
         get_action_name = 'do_GET_' + parsed_path.path[1:]
         if hasattr(self, get_action_name):
@@ -253,7 +271,6 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed_path = parse.urlparse(self.path)
-        self.session = self.get_session()
 
         if parsed_path.path == "/set_kml":
             self._set_headers()
@@ -332,7 +349,6 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         return None, "Unexpected ends of data."
 
     def get_session(self):
-
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         if "sessionId" in qs:
