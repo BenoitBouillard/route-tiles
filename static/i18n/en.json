@@ -28,12 +28,18 @@
   "msg-section-configuration": "Configuration",
   "msg-section-route": "Routing",
   "msg-config-language": "Language",
-  "msg-config-mode": "Mode",
+  "msg-config-mode": "Path type",
   "msg-route-name": "Route name",
   "msg-download-filename": "File name",
   "msg-button-rename": "Rename the trace",
   "msg-button-download": "Download trace",
   "msg-button-merge": "Merge with next selected route",
   "msg-button-delete": "Delete route",
-  "msg-subsection-download": "Download"
+  "msg-subsection-download": "Download",
+  "msg-status": "Status",
+  "msg-config-route-mode": "Mode",
+  "message-config-route-tiles": "Tiles",
+  "message-config-route-isochrone-dist": "Isochrone distance",
+  "message-config-route-isochrone-time": "Isochrone duration"
+
 }

@@ -38,7 +38,6 @@ class SessionElement(object):
 
 
 def check_sessions():
-    print(sessionDict.keys())
     for session_id in list(sessionDict):
         session = sessionDict[session_id]
         if session.routeServer.is_complete:
@@ -51,7 +50,7 @@ def check_sessions():
             print("Remove session ", session_id)
             if not session.routeServer.is_complete:
                 print("  abort previous routing")
-                session.routeServer.myRouter.abort()
+                session.routeServer.abort()
             sessionDict.pop(session_id)
 
 
@@ -126,6 +125,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         start = [float(qs['start[]'][0]), float(qs['start[]'][1])]
         end = [float(qs['end[]'][0]), float(qs['end[]'][1])]
         mode = qs['mode'][0]
+        route_mode = qs['route-mode'][0]
         turnaround_cost = float(qs['turnaroundCost'][0])
         if 'tiles[]' in qs:
             tiles = qs['tiles[]']
@@ -135,29 +135,16 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         else:
             tiles = []
 
-        answer = {'sessionId': self.sessionId}
+        config = {'route_mode': route_mode, 'turnaround_cost': turnaround_cost}
 
-        router, message, info = self.session.routeServer.start_route(mode, start, end, tiles, config={'turnaround_cost':turnaround_cost})
+        if route_mode=='isochrone-dist':
+            end = start
+            config['distance'] = 1.0 # km
+            config['target_dist'] = 15 # km
 
-        if router:
-            answer['status'] = "OK"
-            if self.session.routeServer.is_complete:
-                answer['state'] = 'complete'
-            else:
-                answer['state'] = 'searching'
-
-            route = self.session.routeServer.route
-            if route:
-                crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
-
-                answer['findRouteId'] = crc
-                answer['length'] = route.length
-                answer['route'] = route.routeLatLons
-        else:
-            answer['status'] = "Fail"
-            answer['message'] = message
-            answer['tiles'] = info
-
+        self.session.routeServer.start_route(mode, start, end, tiles, config=config)
+        answer = {'sessionId': self.sessionId,
+                  'status': "OK"}
         self.wfile.write(json.dumps(answer).encode('utf-8'))
 
     def do_GET_route_status(self):
@@ -166,28 +153,24 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         answer = {'status': "OK"}
 
-        if self.session.routeServer.myRouter:
-            if self.session.routeServer.myRouter.error_code==0:
-                if self.session.routeServer.is_complete:
-                    answer['state'] = 'complete'
-                else:
-                    answer['state'] = 'searching'
-                answer['progress'] = self.session.routeServer.progress
-                route = self.session.routeServer.route
-                if route:
-                    crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
-
-                    if self.session.routeServer.is_complete or 'findRouteId' not in qs or crc != qs['findRouteId'][0]:
-                        answer['findRouteId'] = crc
-                        answer['length'] = route.length
-                        answer['route'] = route.routeLatLons
+        if self.session.routeServer.error_code==0:
+            if self.session.routeServer.is_complete:
+                answer['state'] = 'complete'
             else:
-                answer['status'] = 'Fail'
-                answer['error_code'] = self.session.routeServer.myRouter.error_code
-                answer['error_args'] =self.session.routeServer.myRouter.error_args
+                answer['state'] = 'searching'
+            answer['progress'] = self.session.routeServer.progress
+            route = self.session.routeServer.route
+            if route:
+                crc = "{:X}".format(zlib.crc32(struct.pack(">{}Q".format(len(route.route)), *route.route)))
+
+                if 'findRouteId' not in qs or crc != qs['findRouteId'][0]:
+                    answer['findRouteId'] = crc
+                    answer['length'] = route.length
+                    answer['route'] = route.routeLatLons
         else:
             answer['status'] = 'Fail'
-            answer['error_code'] = 1000
+            answer['error_code'] = self.session.routeServer.error_code
+            answer['error_args'] =self.session.routeServer.error_args
 
         answer['sessionId'] = self.sessionId
         self.wfile.write(json.dumps(answer).encode('utf-8'))
@@ -199,7 +182,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         answer = {'status': "OK"}
 
         if not self.session.routeServer.is_complete:
-            self.session.routeServer.myRouter.abort()
+            self.session.routeServer.abort()
 
         answer['sessionId'] = self.sessionId
         self.wfile.write(json.dumps(answer).encode('utf-8'))
@@ -217,9 +200,9 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             gpx_file_name += ".gpx"
         if "\\" in gpx_file_name or "/" in gpx_file_name:
             answer = {'status': "Fail", 'message': "wrong filename"}
-        elif not self.session.routeServer.myRouter:
+        elif not self.session.routeServer.min_route:
             answer = {'status': "Fail", 'message': "No route"}
-        elif self.session.routeServer.myRouter.generate_gpx(
+        elif self.session.routeServer.generate_gpx(
                 os.path.join(self.directory, 'gpx', gpx_file_name), gpx_name):
             answer = {'status': "OK", 'path': 'gpx/' + gpx_file_name}
         else:

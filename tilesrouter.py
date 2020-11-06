@@ -103,21 +103,125 @@ ERR_NO_TILE_ENTRY_POINT = 1
 ERR_ABORT_REQUEST = 2
 ERR_ROUTE_ERROR = 1000
 
-class MyRouter(object):
-    def __init__(self, router, start, end, tiles_ids, config):
-        self.router = router
+def compute_missing_kml(file):
+    k = kml.KML()
+    doc = file.read()
+    try:
+        k.from_string(doc)
+    except Exception as e:
+        print(e)
+        return False
+
+    features = list(k.features())
+    folder = list(features[0].features())[0]
+    # folder = features[0]
+    xmin, xmax, ymin, ymax = None, None, None, None
+    not_found_tiles = []
+    for placemark in folder.features():
+        tile = Tile(placemark.geometry.coords)
+        not_found_tiles.append(tile.uid)
+        if not xmin or tile.x < xmin:
+            xmin = tile.x
+        if not xmax or tile.x > xmax:
+            xmax = tile.x
+        if not ymin or tile.y < ymin:
+            ymin = tile.y
+        if not ymax or tile.y > ymax:
+            ymax = tile.y
+
+    max_square = 1
+    max_square_x = 0
+    max_square_y = 0
+
+    def is_square(pos_x, pos_y, m):
+        if pos_x + m > xmax or pos_y + m > ymax:
+            return False
+        for dx in range(m):
+            for dy in range(m):
+                uid = "{}_{}".format(pos_x + dx, pos_y + dy)
+                if uid in not_found_tiles:
+                    return False
+        return True
+
+    # Trouver le carré le plus grand
+    for x in range(xmin, xmax + 1):
+        for y in range(ymin, ymax + 1):
+            while True:
+                if is_square(x, y, max_square + 1):
+                    max_square_x = x
+                    max_square_y = y
+                    max_square = max_square + 1
+                else:
+                    break  # while break
+
+    max_square_coord = (coord_from_tile(max_square_x, max_square_y),
+                        coord_from_tile(max_square_x + max_square, max_square_y + max_square))
+    print("Max square:{} at {},{}".format(max_square, max_square_x, max_square_y))
+    return {"tiles": not_found_tiles, "max": max_square, "coord": max_square_coord}
+
+
+class RouteServer(object):
+    def __init__(self):
+        self.stored_tiles = {}
+        self.router = None
+        self._exit = False
+
+        self.mode = None
+        self.thread = None
+
+        self._complete = False
+        self.error_code = ERR_NO
+        self.error_args = ""
+        self._min_route = None
+        self.min_length = None
+        self.progress = 0
+
+        # Parameter for background task
+        self.run_data = {}
+
+    def start_route(self, mode, start_loc, end_loc, tiles, config={}, thread=True):
+        print(tiles)
+
+        if self.thread and not self.is_complete:
+            print("Abord previous route...")
+            self.abort()
+            self.thread.join()
+            print("   ...OK")
+        if mode != self.mode:
+            self.mode = mode
+            self.stored_tiles = {}
+            self.router = Datastore(mode, cache_dir=str(Path.home().joinpath('.tilescache')))
+
+        self._exit = False
+
         self._min_route = None
         self.min_length = None
         self.error_code = ERR_NO
         self.error_args = ""
-        self._exit = False
         self._complete = False
-        self.start = start
-        self.end = end
-        self.tiles_ids = tiles_ids
         self.progress = 100.0
-        self.config = config
-        self.stored_tiles = {}
+        self.run_data = {
+            'start' : start_loc,
+            'end'   : end_loc,
+            'tiles' : tiles,
+            'config': config
+        }
+
+        if thread:
+            self.thread = threading.Thread(target=self.run)
+            # Background thread will finish with the main program
+            self.thread.setDaemon(True)
+            # Start YourLedRoutine() in a separate thread
+            self.thread.start()
+
+        else:
+            self.run()
+
+        return self.is_complete, self.route
+
+    @property
+    def route(self):
+        return self.min_route
 
     def abort(self):
         self._exit = True
@@ -127,17 +231,12 @@ class MyRouter(object):
         return self._complete
 
     def run(self):
-        self.min_length = None
-        self._min_route = None
-        self.error_code = ERR_NO
-        self.error_args = ""
-
         coord_dict = CoordDict(self.router)
-        start_point = coord_dict.get(*self.start)
-        end_point = coord_dict.get(*self.end)
+        start_point = coord_dict.get(*self.run_data['start'])
+        end_point = coord_dict.get(*self.run_data['end'])
 
         selected_tiles = []
-        for t in self.tiles_ids:
+        for t in self.run_data['tiles']:
             if self._exit:
                 self.error_code = ERR_ABORT_REQUEST
                 return False
@@ -147,7 +246,7 @@ class MyRouter(object):
             tile = self.stored_tiles[t]
             if Polygon(tile.linear_ring()).contains(Point(start_point.latlon)) or \
                     Polygon(tile.linear_ring()).contains(Point(end_point.latlon)):
-                print("tile is in start or end")
+                # Tile contains start or end. No need to test
                 continue
             tile.get_entry_points(self.router)
             selected_tiles.append(tile)
@@ -158,8 +257,11 @@ class MyRouter(object):
                 return False
 
         debug_export_tiles(selected_tiles)
-        status, r = self.do_route_with_crossing_zone(start_point.nodeId, end_point.nodeId,
-                                                     frozenset(selected_tiles), self.config)
+        if self.run_data['config']['route_mode']=="isochrone-dist":
+            status, r = self.do_route_isochrone(start_point.nodeId, self.run_data['config'])
+        else:
+            status, r = self.do_route_with_crossing_zone(start_point.nodeId, end_point.nodeId,
+                                                         frozenset(selected_tiles), self.run_data['config'])
         if status != "success":
             self.error_code = ERR_ROUTE_ERROR
             self.error_args = ""
@@ -618,6 +720,321 @@ class MyRouter(object):
         else:
             return "gave_up", []
 
+    def if_route_exists(self, start, end, forbidden_nodes):
+        """Do the routing"""
+        _closed = {start}
+        _queue = []
+        _closeNode = True
+        _end = end
+
+        def _queue_insert(queue_item):
+            nonlocal _queue
+            # Try to insert, keeping the queue ordered by decreasing heuristic cost
+            position = 0
+            for test in _queue:
+                if test["heuristic_cost"] > queue_item["heuristic_cost"]:
+                    _queue.insert(position, queue_item)
+                    break
+                position += 1
+
+            else:
+                _queue.append(queue_item)
+
+        # Define function that addes to the queue
+        def _add_to_queue(item_start, item_end, queue_so_far):
+            """Add another potential route to the queue"""
+            nonlocal _closed, _queue, _closeNode, end
+
+            # Do not turn around at a node (don't do this: a-b-a)
+            # if len(queueSoFar["nodes"].split(",")) >= 2 and queueSoFar["nodes"].split(",")[-2] == str(end):
+            #    return
+
+            edge_cost = distance(self.router.rnodes[item_start], self.router.rnodes[item_end])
+
+            total_cost = queue_so_far["cost"] + edge_cost
+
+            # t = time.time() if len(min_dists)==0 else None
+            hc = distance(self.router.rnodes[item_end], self.router.rnodes[end])
+
+            heuristic_cost = total_cost + hc
+
+            all_nodes = queue_so_far["nodes"] + "," + str(item_end)
+
+
+            # Check if we have a way to 'end' node
+            end_queue_item = None
+            for i in _queue:
+                if i["end"] == item_end:
+                    end_queue_item = i
+                    break
+
+            if end_queue_item :
+                # If we do, and known total_cost to end is lower we can ignore the queueSoFar path
+                if end_queue_item["cost"] < total_cost:
+                    return
+                # If the queued way to end has higher total cost, remove it
+                # (and add the queueSoFar scenario, as it's cheaper)
+                elif end_queue_item:
+                    _queue.remove(end_queue_item)
+
+            # Create a hash for all the route's attributes
+            queue_item = {
+                "cost": total_cost,
+                "heuristic_cost": heuristic_cost,
+                "nodes": all_nodes,
+                "end": item_end
+            }
+
+            _queue_insert(queue_item)
+
+
+
+        # Start by queueing all outbound links from the start node
+        if start not in self.router.routing:
+            raise KeyError("node {} doesn't exist in the graph".format(start))
+
+        elif start == end:
+            return True
+        else:
+            for linkedNode in list(self.router.routing[start]):
+                _add_to_queue(start, linkedNode, {"cost": 0, "nodes": str(start)})
+
+        # Limit for how long it will search
+        count = 0
+        while count < 1000000 and not self._exit:
+            count += 1
+            _closeNode = True
+            #_export_queue()
+
+            # Pop first item from queue for routing. If queue it's empty - it means no route exists
+            if len(_queue) > 0:
+                next_item = _queue.pop(0)
+            else:
+                return False
+
+            considered_node = next_item["end"]
+
+            # If we already visited the node, ignore it
+            if considered_node in _closed:
+                continue
+
+            # Found the end node - success
+            if considered_node == end:
+                return True
+
+
+            # If no, add all possible nodes from x to queue
+            elif considered_node in self.router.routing:
+                for next_node, weight in list(self.router.routing[considered_node].items()):
+                    if next_node not in _closed and next_node not in forbidden_nodes:
+                        _add_to_queue(considered_node, next_node, next_item)
+
+            if _closeNode:
+                _closed.add(considered_node)
+        else:
+            return False
+
+    def do_route_isochrone(self, start, config):
+        """Do the routing"""
+        _queue = []
+        _closeNode = True
+        _longest_route = None
+
+        def _export_queue(new_item=None):
+            nonlocal _queue, _closeNode
+            try:
+                with open('debug/routes.js', 'w') as hf:
+                    hf.write("var routes = [\n")
+                    if new_item:
+                        route = [i for i in new_item['right']['nodes'][::-1]+new_item['left']["nodes"]]
+                        hf.write(" { \n")
+                        hf.write("  'name':'{0}-{1:.3f}',\n".format('x',
+                                                                    new_item['cost']))
+                        hf.write("  'length':{},\n".format(new_item['cost']))
+                        hf.write("  'route':[\n")
+                        for lat, lon in list(map(self.router.node_lat_lon, route)):
+                            hf.write("[{},{}],\n".format(lat, lon))
+                        hf.write("  ],\n")
+                        hf.write("  },\n")
+                    for q in _queue[:100]:
+                        route = [i for i in q['right']['nodes'][::-1]+q['left']["nodes"]]
+                        hf.write(" { \n")
+                        hf.write("  'name':'{0}-{1:.3f}',\n".format('x', q['cost']))
+                        hf.write("  'length':{},\n".format(q['cost']))
+                        hf.write("  'route':[\n")
+                        for lat, lon in list(map(self.router.node_lat_lon, route)):
+                            hf.write("[{},{}],\n".format(lat, lon))
+                        hf.write("  ],\n")
+                        hf.write("  },\n")
+                    hf.write("];\n")
+            except:
+                pass
+
+        def _queue_insert(queue_item):
+            nonlocal _queue
+            # Try to insert, keeping the queue ordered by decreasing heuristic cost
+            position = 0
+            for test in _queue:
+                if test["cost"] < queue_item["cost"]:
+                    _queue.insert(position, queue_item)
+                    break
+                position += 1
+
+            else:
+                _queue.append(queue_item)
+
+        def dist(a,b):
+            return distance(self.router.rnodes[a], self.router.rnodes[b])
+
+        segments = {}
+
+        # Define function that addes to the queue
+        def _add_to_queue(item_start, item_end, branch, queue_so_far, item_weight=1):
+            """Add another potential route to the queue"""
+            nonlocal _queue, _closeNode, segments
+
+            if (item_start, item_end) not in segments:
+                s = item_start
+                e = item_end
+                d = distance(self.router.rnodes[s], self.router.rnodes[e])
+                r = (e,)
+                while len(self.router.routing[e])==2:
+                    z = s
+                    s = e
+                    k = list(self.router.routing[e].keys())
+                    k.remove(z)
+                    e = k[0]
+                    d += distance(self.router.rnodes[s], self.router.rnodes[e])
+                    r += (e,)
+                segments[(item_start, item_end)] = (d, r)
+
+            segment_distance, segment_nodes = segments[(item_start, item_end)]
+
+            # Do not cross
+            if segment_nodes[-1] in queue_so_far[branch]["nodes"] or segment_nodes[-1] in queue_so_far['right' if branch=='left' else 'left']["nodes"][:-1]:
+               return
+
+            edge_cost = segment_distance
+
+            total_cost = queue_so_far[branch]["cost"] + edge_cost
+
+            all_nodes = queue_so_far[branch]["nodes"] + segment_nodes
+
+
+            # Create a hash for all the route's attributes
+            queue_item = {
+                "left": queue_so_far["left"] if branch=="right" else {"cost":total_cost, "nodes":all_nodes},
+                "right": queue_so_far["right"] if branch=="left" else {"cost":total_cost, "nodes":all_nodes}
+            }
+            queue_item["cost"] = queue_item['left']['cost'] + queue_item['right']['cost']
+
+            if self.if_route_exists(queue_item["left"]['nodes'][-1], queue_item["right"]['nodes'][-1],list(queue_item["left"]['nodes'][:-1]+queue_item["right"]['nodes'][:-1])):
+                _queue_insert(queue_item)
+
+        def dichotomie(function, max_ecart=0.0005):
+            step = 0.5
+            x = 1
+            ecart = function(x)
+            while math.fabs(ecart) > max_ecart:
+                if ecart > 0:
+                    x = x + step
+                else:
+                    x = x - step
+                step /= 2
+                ecart = function(x)
+            return x
+
+        start_latlon = self.router.rnodes[start]
+        dlat = dichotomie(lambda x: config["distance"] - distance(start_latlon, (start_latlon[0]+x, start_latlon[1])))
+        dlon = dichotomie(lambda x: config["distance"] - distance(start_latlon, (start_latlon[0], start_latlon[1]+x)))
+
+        self.router.get_area_rect(start_latlon[0]-dlat, start_latlon[1]-dlon, start_latlon[0]+dlat, start_latlon[1]+dlon)
+
+        # remove all rnodes not in limits
+        boundary_nodes = []
+        print(len(self.router.routing))
+        for node in self.router.rnodes:
+                if distance(start_latlon, self.router.rnodes[node])>config["distance"]:
+                    for n in self.router.routing[node]:
+                        self.router.routing[n].pop(node)
+                        if n not in boundary_nodes:
+                            boundary_nodes.append(n)
+                    self.router.routing.pop(node)
+        print(len(self.router.routing))
+
+        # remove impasse
+        while len(boundary_nodes)>0:
+            node = boundary_nodes.pop()
+            if node in self.router.routing:
+                if len(self.router.routing[node])==1:
+                    for n in self.router.routing[node]:
+                        self.router.routing[n].pop(node)
+                        if n not in boundary_nodes:
+                            boundary_nodes.append(n)
+                        self.router.routing.pop(node)
+        print(len(self.router.routing))
+
+
+        # Start by queueing all outbound links from the start node
+        if start not in self.router.routing:
+            raise KeyError("node {} doesn't exist in the graph".format(start))
+
+        from itertools import combinations
+        for comb in combinations(list(self.router.routing[start]) ,2):
+            queue_item = {
+                "left": {"cost":dist(start, comb[0]), "nodes":(start, comb[0])},
+                "right": {"cost":dist(start, comb[1]), "nodes":(start, comb[1])}
+            }
+            queue_item["cost"] = queue_item['left']['cost'] + queue_item['right']['cost']
+            _queue_insert(queue_item)
+
+
+
+        # Limit for how long it will search
+        count = 0
+        while _queue and not self._exit:
+            count += 1
+            _closeNode = True
+            if count%10000==0:
+                _export_queue(_longest_route)
+
+            # Pop first item from queue for routing. If queue it's empty - it means no route exists
+            next_item = _queue.pop(0)
+
+            if next_item['left']['cost']<next_item['right']['cost']:
+                consider_branch = 'left'
+                other_branch = 'right'
+            else:
+                consider_branch = 'right'
+                other_branch = 'left'
+            considered_node = next_item[consider_branch]["nodes"][-1]
+
+            # Found the end node - success
+            if considered_node == next_item[other_branch]["nodes"][-1] and len(next_item[other_branch]["nodes"])>1:
+                _export_queue(next_item)
+                if next_item['cost'] > config['target_dist']:
+                    print(next_item)
+                    return "success", next_item["left"]["nodes"] + next_item["right"]["nodes"][::-1]
+                else:
+                    if not _longest_route or next_item['cost'] > _longest_route['cost']:
+                        self._min_route = ','.join(str(a) for a in (next_item["left"]["nodes"] + next_item["right"]["nodes"][::-1]))
+                        self.min_length = next_item['cost']
+                        print("Find new longest route: {:.03}km ({})".format(next_item['cost'], len(_queue)))
+                        _longest_route =  next_item # [int(i) for i in next_item["nodes"].split(",")]
+                continue
+
+            # If no, add all possible nodes from x to queue
+            elif considered_node in self.router.routing:
+                for next_node, weight in list(self.router.routing[considered_node].items()):
+                    _add_to_queue(considered_node, next_node, consider_branch, next_item, weight)
+
+
+        if _longest_route:
+            print(count)
+            _export_queue(_longest_route)
+            return "success", _longest_route["left"]["nodes"] + _longest_route["right"]["nodes"][::-1]
+        return "gave_up", []
+
     def generate_gpx(self, file_name, gpx_name):
         if self.min_route:
             return self.min_route.to_gpx(file_name, gpx_name)
@@ -625,113 +1042,6 @@ class MyRouter(object):
             return False
 
 
-def compute_missing_kml(file):
-    k = kml.KML()
-    doc = file.read()
-    try:
-        k.from_string(doc)
-    except Exception as e:
-        print(e)
-        return False
-
-    features = list(k.features())
-    folder = list(features[0].features())[0]
-    # folder = features[0]
-    xmin, xmax, ymin, ymax = None, None, None, None
-    not_found_tiles = []
-    for placemark in folder.features():
-        tile = Tile(placemark.geometry.coords)
-        not_found_tiles.append(tile.uid)
-        if not xmin or tile.x < xmin:
-            xmin = tile.x
-        if not xmax or tile.x > xmax:
-            xmax = tile.x
-        if not ymin or tile.y < ymin:
-            ymin = tile.y
-        if not ymax or tile.y > ymax:
-            ymax = tile.y
-
-    max_square = 1
-    max_square_x = 0
-    max_square_y = 0
-
-    def is_square(pos_x, pos_y, m):
-        if pos_x + m > xmax or pos_y + m > ymax:
-            return False
-        for dx in range(m):
-            for dy in range(m):
-                uid = "{}_{}".format(pos_x + dx, pos_y + dy)
-                if uid in not_found_tiles:
-                    return False
-        return True
-
-    # Trouver le carré le plus grand
-    for x in range(xmin, xmax + 1):
-        for y in range(ymin, ymax + 1):
-            while True:
-                if is_square(x, y, max_square + 1):
-                    max_square_x = x
-                    max_square_y = y
-                    max_square = max_square + 1
-                else:
-                    break  # while break
-
-    max_square_coord = (coord_from_tile(max_square_x, max_square_y),
-                        coord_from_tile(max_square_x + max_square, max_square_y + max_square))
-    print("Max square:{} at {},{}".format(max_square, max_square_x, max_square_y))
-    return {"tiles": not_found_tiles, "max": max_square, "coord": max_square_coord}
-
-
-class RouteServer(object):
-    def __init__(self):
-        self.stored_tiles = {}
-        self.router = None
-        self.myRouter = None
-        self.mode = None
-        self.thread = None
-
-    def start_route(self, mode, start_loc, end_loc, tiles, config={}, thread=True):
-        print(tiles)
-
-        if thread and self.myRouter and not self.myRouter.is_complete:
-            print("Abord previous route...")
-            self.myRouter.abort()
-            self.thread.join()
-            print("   ...OK")
-        if mode != self.mode:
-            self.mode = mode
-            self.stored_tiles = {}
-            self.router = Datastore(mode, cache_dir=str(Path.home().joinpath('.tilescache')))
-
-        self.myRouter = MyRouter(self.router, start_loc, end_loc, tiles, config)
-        if thread:
-            self.thread = threading.Thread(target=self.myRouter.run)
-            # Background thread will finish with the main program
-            self.thread.setDaemon(True)
-            # Start YourLedRoutine() in a separate thread
-            self.thread.start()
-
-        else:
-            self.myRouter.run()
-
-        return self.myRouter, self.is_complete, self.route
-
-    @property
-    def progress(self):
-        return self.myRouter.progress
-
-    @property
-    def route(self):
-        return self.myRouter.min_route
-
-    @property
-    def is_complete(self):
-        if not self.myRouter: return True
-        return self.myRouter.is_complete
-
-    def abort(self):
-        if self.myRouter:
-            self.myRouter.abort()
 
 
 if __name__ == '__main__':
@@ -741,9 +1051,16 @@ if __name__ == '__main__':
     rs = RouteServer()
     # print(computeMissingKml(open("missing_tiles.kml", "rb")))
 
-    pprint(rs.start_route('roadcycle', [49.22348337019613,1.0639143922640362],
-                        [49.223553460378696,1.0666931370750057],
-                        ['8240_5610'], config={'turnaround_cost':1.5}, thread=False)[2].route)
+    pprint(rs.start_route('foot', [49.019971703799264,1.3924220186037095],
+                        [49.213139772606155,1.3080430607664086],
+                        [], config={'route_mode':'isochrone-dist', 'distance':1.0, 'target_dist':15,
+                                               'turnaround_cost':1.5}, thread=False)[1])
+
+    exit()
+    pprint(rs.start_route('foot', [49.213139772606155,1.3080430607664086],
+                        [49.213139772606155,1.3080430607664086],
+                        [], config={'route_mode':'isochrone-dist', 'distance':1.0, 'target_dist':10,
+                                               'turnaround_cost':1.5}, thread=False)[1])
 
     # print(rs.start_route([49.250775603162886,1.4452171325683596],
     #                     [49.250775603162886,1.4452171325683596],

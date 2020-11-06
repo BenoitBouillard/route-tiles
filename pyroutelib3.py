@@ -460,7 +460,7 @@ class Datastore:
         if not oneway and (tags.get("junction", "") in ["roundabout", "circular"] or highway == "motorway"):
             oneway = "yes"
 
-        if self.transport == "foot" or (
+        if self.transport in ["foot", "trail"] or (
                 oneway in ["yes", "true", "1", "-1"] and tags.get("oneway:" + self.transport, "yes") == "no"):
             oneway = "no"
 

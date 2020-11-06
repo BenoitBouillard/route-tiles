@@ -79,8 +79,6 @@ $(document).ready(function(){
 
         var mymap = L.map('mapid');
         var routePolyline = false;
-        var completedRoutePolyline = [];
-
         var tilesLayerGroup = L.layerGroup().addTo(mymap);
 
         function TileFromCoord(lat, lon) {
@@ -214,17 +212,112 @@ $(document).ready(function(){
           return  [ll.lat, ll.lng];
         }
 
+
+
+        { // CONFIG-STORAGE
+            $('select.config-storage').each(function(){
+                let id = this.id;
+                let storage = localStorage.getItem(id)
+                if (storage) {
+                    let val = $(this).find('option[data-value="'+storage+'"]').val();
+                    $(this).val(val);
+                }
+
+                $(this).on('change', function(e) {
+                    e.preventDefault();
+                    $(this).data('value', $(this).find(':selected').data('value'));
+                    localStorage.setItem(this.id, $(this).find(':selected').data('value'));
+                    request_route();
+                });
+            });
+        } // CONFIG-STORAGE
+
         var routeId="";
         var timeoutID=false;
         var active_timeout = 0;
-        var route_rq_id = 0;
         var sessionId = false;
-        var state = false
 
         function setMessageAlert(level) {
             $("#progress-message").removeClass(function(index, className){
                 return (className.match(/(^|\s)alert-\S+/g)||[]).join('')
             }).addClass('alert-'+level);
+        }
+
+        function request_route() {
+
+            if (timeoutID) {
+                // Cancel previous request
+                window.clearTimeout(timeoutID);
+                $("#spinner-searching").hide();
+                timeoutID = false;
+            }
+            $("#length").text("");
+            setMessageAlert('info');
+
+            // Check if enought data for routing
+            if ((!('start' in markers)) || (!('end' in markers) && selected_tiles.length==0)) {
+                $("#message").text($.i18n("message-state-cancel"));
+                return;
+            }
+            $("#message").text($.i18n("message-state-wait"));
+            $('button#addTrace').prop("disabled", true);
+
+            // Remove tiles error
+            for (let i=0; i<error_tiles.length; i++) {
+                let tile = displayed_tiles.get(error_tiles[i])
+                tile.error(0);
+            }
+            error_tiles = []
+            routeId = ""
+
+            // Launch timer
+            timeoutID = window.setTimeout(start_route, 2000, ++active_timeout);
+            $("#spinner-searching").show();
+        }
+
+        function start_route(timeout_id) {
+            if (timeout_id != active_timeout) return;
+            $("#message").text($.i18n("message-state-ask-route"));
+            let data = { 'sessionId'      : sessionId,
+                         'start'          : latlonToQuery(markers['start'].getLatLng()),
+                         'turnaroundCost' : $("#turnaround-cost").find(':selected').data('value'),
+                         'mode'           : $('#mode-selection').find(':selected').data('value'),
+                         'route-mode'     : $('#route-mode').find(':selected').data('value'),
+                         'tiles'          : selected_tiles
+                       }
+            if ('end' in markers) {
+                data['end'] = latlonToQuery(markers['end'].getLatLng());
+            }
+            else {
+                data['end'] = data['start'];
+            }
+
+            $.getJSON({
+                url: 'start_route',
+                data: data,
+                success: function ( data ) {
+                    sessionId = data.sessionId
+                    if (data['status']=="OK") {
+                        route_status(timeout_id);
+                    }
+                }
+            });
+        }
+
+        ERR_NO = 0
+        ERR_NO_TILE_ENTRY_POINT = 1
+        ERR_ABORT_REQUEST = 2
+        ERR_ROUTE_ERROR = 1000
+
+        function manage_error(error_code, error_data) {
+            $("#message").text($.i18n("message-state-fail")+":"+$.i18n("msg-error_"+error_code));
+            if (error_code == ERR_NO_TILE_ENTRY_POINT) {
+                error_tiles = error_data;
+                for (let i=0; i<error_tiles.length; i++) {
+                    let tile = displayed_tiles.get(error_tiles[i])
+                    tile.error(1);
+                }
+            }
         }
 
         function route_status(timeout_id) {
@@ -234,7 +327,6 @@ $(document).ready(function(){
                 data: { 'sessionId': sessionId, 'findRouteId' : routeId },
                 success: function ( data ) {
                     if (data['status']=="OK") {
-                        state = data['state']
                         $("#message").text($.i18n("message-state-"+data['state']));
                         if ('route' in data) {
                             routeId = data['findRouteId']
@@ -254,15 +346,9 @@ $(document).ready(function(){
                             $('button#addTrace').prop("disabled", false);
                         }
                     } else {
-                        $("#message").text($.i18n("message-state-fail")+":"+$.i18n("msg-error_"+data['error_code']));
                         setMessageAlert('danger');
-                        $("#spinner-searching").hide();
                         $("#length").text("");
-                        error_tiles = data.error_args;
-                        for (let i=0; i<error_tiles.length; i++) {
-                            let tile = displayed_tiles.get(error_tiles[i])
-                            tile.error(1);
-                        }
+                        manage_error(data['error_code'], data['error_args']);
                         $("#spinner-searching").hide();
                         timeoutID = false;
                     }
@@ -271,234 +357,203 @@ $(document).ready(function(){
             });
         };
 
-        { // MODE
-            let storage_mode = localStorage.getItem('mode')
-            if (storage_mode) {
-                let val = $("#mode-selection").find('option[data-mode="'+storage_mode+'"]').val();
-                $("#mode-selection").val(val);
-            }
+        {
+            // VISITED TILES & MAX SQUARE
+            var maxSquare = false;
 
-            $('#mode-selection').on('change', function(e) {
+            $('form#set_kml input').on('change', function(e) {
+                if ($('form#set_kml input').val()) {
+                    $( 'form#set_kml' ).submit();
+                }
+            });
+            $( 'form#set_kml' ).submit(function ( e ) {
+                var data;
+
+                data = new FormData();
+                data.append( 'file', $( '#file' )[0].files[0] );
+
+                $.ajax({
+                    type: 'POST',
+                    url: 'set_kml',
+                    data: data,
+                    processData: false,
+                    contentType:false,
+                    success: function ( data ) {
+                        let tiles = data.tiles;
+                        if (data.status=="OK") {
+                            if (maxSquare) {
+                                maxSquare.remove();
+                                maxSquare = false;
+                            }
+                            is_visited = false
+                            missing_tiles = data.tiles
+                            maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
+                            displayed_tiles.clear();
+                            tilesLayerGroup.clearLayers();
+                            mymap.fitBounds(maxSquare.getBounds().pad(0.1));
+                        }
+                        else {
+                            alert(data.message);
+                        }
+                    }
+                });
+
                 e.preventDefault();
-                $('#mode-selection').data('mode', $(this).find(':selected').data('mode'));
-                localStorage.setItem('mode', $(this).find(':selected').data('mode'));
-                request_route();
             });
-        }
 
-        {
-            let turnaround_cost = localStorage.getItem('turnaround-cost')
-            if (turnaround_cost) {
-                let val = $("#turnaround-cost").find('option[data-cost="'+turnaround_cost+'"]').val();
-                $("#turnaround-cost").val(val);
-            }
+            $( 'button#bImportStatsHunters' ).click(function ( e ) {
+                var data;
 
-            $('#turnaround-cost').change(function(){
-                localStorage.setItem('turnaround-cost', $(this).find(':selected').data('cost'));
-                request_route();
-            });
-        }
-
-        function start_route(timeout_id) {
-            if (timeout_id != active_timeout) return;
-            $('button#addTrace').prop("disabled", true);
-            setMessageAlert('info');
-            $("#message").text($.i18n("message-state-ask-route"));
-            $("#length").text("");
-            $("#spinner-searching").show();
-            let data = { 'sessionId'      : sessionId,
-                         'start'          : latlonToQuery(markers['start'].getLatLng()),
-                         'turnaroundCost':$("#turnaround-cost").find(':selected').data('cost') }
-            if ('end' in markers) {
-                data['end'] = latlonToQuery(markers['end'].getLatLng());
-            }
-            else {
-                data['end'] = data['start'];
-            }
-            data['tiles'] = selected_tiles
-            data['mode'] = $('#mode-selection').find(':selected').data('mode')
-
-            // if (state=="complete") {
-                // routePolyline.setStyle({color:'blue'});
-                // completedRoutePolyline.push(routePolyline);
-                // routePolyline = false
-            // }
-
-            $.getJSON({
-                url: 'start_route',
-                data: data,
-                success: function ( data ) {
-                    sessionId = data.sessionId
-                    if (data['status']=="OK") {
-                        for (let i=0; i<error_tiles.length; i++) {
-                            let tile = displayed_tiles.get(error_tiles[i])
-                            tile.error(0);
+                $.ajax({
+                    type: 'GET',
+                    url: 'statshunters',
+                    data: {url: $("#statshunters_url").val()},
+                    success: function ( data ) {
+                        if (data.status=="OK") {
+                            if (maxSquare) {
+                                maxSquare.remove();
+                                maxSquare = false;
+                            }
+                            localStorage.setItem("statshunters_url", $("#statshunters_url").val());
+                            is_visited = true
+                            missing_tiles = data.tiles
+                            maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
+                            displayed_tiles.clear();
+                            tilesLayerGroup.clearLayers();
+                            mymap.fitBounds(maxSquare.getBounds().pad(0.1));
                         }
-                        error_tiles = []
-                        route_status(timeout_id);
-                    } else {
-                        setMessageAlert('danger');
-                        $("#message").text($.i18n("message-state-fail")+":"+data['message']);
-                        $("#spinner-searching").hide();
-                        $("#length").text("");
-                        error_tiles = data.tiles;
-                        for (let i=0; i<error_tiles.length; i++) {
-                            let tile = displayed_tiles.get(error_tiles[i])
-                            tile.error(1);
+                        else {
+                            alert(data.message);
                         }
-
-                        //updateMapTiles();
                     }
+                });
+
+                e.preventDefault();
+            });
+            {
+                let statshunters_url = localStorage.getItem("statshunters_url")
+                if (statshunters_url) {
+                    $("#statshunters_url").val(statshunters_url);
+                    $( 'button#bImportStatsHunters' ).click();
+                }
+            }
+            $("#bImportStatsHuntersReset").click(function() {
+                localStorage.removeItem("statshunters_url");
+                if (maxSquare) {
+                    maxSquare.remove();
+                    maxSquare = false;
+                }
+                $("#statshunters_url").val("");
+                missing_tiles = [];
+                is_visited = false;
+                displayed_tiles.clear();
+                tilesLayerGroup.clearLayers();
+                updateMapTiles();
+            })
+        } // VISITED TILES & MAX SQUARE
+
+        { // START AND END MARKER MANAGEMENT
+            var selectLoc = false;
+            var markers = {};
+
+            $("button#bStart").on("click", function(e) {
+                selectLoc = "start";
+            });
+            $("button#bEnd").on("click", function(e) {
+                selectLoc = "end";
+            });
+
+            $("button#bClearStart").on("click", function(e) {
+                selectLoc = false;
+                if ("start" in markers) {
+                    markers["start"].remove();
+                    delete markers["start"];
+                    localStorage.removeItem("start");
                 }
             });
-        }
-        function request_route() {
-
-            if (timeoutID) {
-                window.clearTimeout(timeoutID);
-                timeoutID = false;
-            }
-            $("#length").text("");
-            if ((!('start' in markers)) || (!('end' in markers) && selected_tiles.length==0)) {
-                setMessageAlert('info');
-                $("#spinner-searching").hide();
-                $("#message").text($.i18n("message-state-cancel"));
-                return;
-            }
-            setMessageAlert('info');
-            $("#message").text($.i18n("message-state-wait"));
-
-            timeoutID = window.setTimeout(start_route, 2000, ++active_timeout);
-        }
-
-
-
-        var maxSquare = false;
-
-
-        $('form#set_kml input').on('change', function(e) {
-            if ($('form#set_kml input').val()) {
-                $( 'form#set_kml' ).submit();
-            }
-        });
-        $( 'form#set_kml' ).submit(function ( e ) {
-            var data;
-
-            data = new FormData();
-            data.append( 'file', $( '#file' )[0].files[0] );
-
-            $.ajax({
-                type: 'POST',
-                url: 'set_kml',
-                data: data,
-                processData: false,
-                contentType:false,
-                success: function ( data ) {
-                    let tiles = data.tiles;
-                    if (data.status=="OK") {
-                        if (maxSquare) {
-                            maxSquare.remove();
-                            maxSquare = false;
-                        }
-                        is_visited = false
-                        missing_tiles = data.tiles
-                        maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
-                        displayed_tiles.clear();
-                        tilesLayerGroup.clearLayers();
-                        mymap.fitBounds(maxSquare.getBounds().pad(0.1));
-                    }
-                    else {
-                        alert(data.message);
-                    }
+            $("button#bClearEnd").on("click", function(e) {
+                selectLoc = false;
+                if ("end" in markers) {
+                    markers["end"].remove();
+                    delete markers["end"];
+                    localStorage.removeItem("end");
+                    request_route();
                 }
             });
-
-            e.preventDefault();
-        });
-
-        $( 'button#bImportStatsHunters' ).click(function ( e ) {
-            var data;
-
-            $.ajax({
-                type: 'GET',
-                url: 'statshunters',
-                data: {url: $("#statshunters_url").val()},
-                success: function ( data ) {
-                    if (data.status=="OK") {
-                        if (maxSquare) {
-                            maxSquare.remove();
-                            maxSquare = false;
-                        }
-                        localStorage.setItem("statshunters_url", $("#statshunters_url").val());
-                        is_visited = true
-                        missing_tiles = data.tiles
-                        maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
-                        displayed_tiles.clear();
-                        tilesLayerGroup.clearLayers();
-                        mymap.fitBounds(maxSquare.getBounds().pad(0.1));
-                    }
-                    else {
-                        alert(data.message);
-                    }
-                }
-            });
-
-            e.preventDefault();
-        });
-        {
-            let statshunters_url = localStorage.getItem("statshunters_url")
-            if (statshunters_url) {
-                $("#statshunters_url").val(statshunters_url);
-                $( 'button#bImportStatsHunters' ).click();
-            }
-        }
-        $("#bImportStatsHuntersReset").click(function() {
-            localStorage.removeItem("statshunters_url");
-            if (maxSquare) {
-                maxSquare.remove();
-                maxSquare = false;
-            }
-            $("#statshunters_url").val("");
-            missing_tiles = [];
-            is_visited = false;
-            displayed_tiles.clear();
-            tilesLayerGroup.clearLayers();
-            updateMapTiles();
-        })
-
-        var selectLoc = false;
-        var markers = {};
-
-        $("button#bStart").on("click", function(e) {
-            selectLoc = "start";
-        });
-        $("button#bEnd").on("click", function(e) {
-            selectLoc = "end";
-        });
-
-        $("button#bClearStart").on("click", function(e) {
-            selectLoc = false;
-            if ("start" in markers) {
-                markers["start"].remove();
-                delete markers["start"];
-                localStorage.removeItem("start");
-            }
-        });
-        $("button#bClearEnd").on("click", function(e) {
-            selectLoc = false;
-            if ("end" in markers) {
-                markers["end"].remove();
-                delete markers["end"];
-                localStorage.removeItem("end");
+            $("button#clear-tiles").on("click", function(e) {
+                selected_tiles = [];
+                localStorage.setItem("selected_tiles", selected_tiles);
+                updateMapTiles();
                 request_route();
+            });
+            $("button#bRevert").on("click", function(e) {
+                m = markers["end"]
+                markers["end"] = markers["start"]
+                markers["start"] = m
+                let latlng = markers["start"].getLatLng();
+                localStorage.setItem("start", latlng.lat+","+latlng.lng);
+                latlng = markers["end"].getLatLng();
+                localStorage.setItem("end", latlng.lat+","+latlng.lng);
+                request_route();
+            });
+
+            function add_marker(name, latlng) {
+                if ((name in markers) && markers[name]) {
+                    markers[name].setLatLng(latlng);
+                } else {
+                    markers[name] =  L.marker(latlng, {draggable: true, title: name}).addTo(mymap).on("dragend", function(e){
+                        localStorage.setItem(this.options.title, this.getLatLng().lat+","+this.getLatLng().lng);
+                        request_route();
+                    });
+                }
             }
-        });
-        $("button#clear-tiles").on("click", function(e) {
-            selected_tiles = [];
-            localStorage.setItem("selected_tiles", selected_tiles);
-            updateMapTiles();
-            request_route();
-    });
+
+            mymap.on("click", function (e) {
+                if (selectLoc==false) return;
+                add_marker(selectLoc, e.latlng);
+                localStorage.setItem(selectLoc, e.latlng.lat+","+e.latlng.lng);
+                selectLoc = false;
+                request_route();
+            });
+
+            { // local Storage recovery
+                let bounds = false;
+                function load_marker(name) {
+                    let lcs = localStorage.getItem(name)
+                    if (lcs) {
+                        add_marker(name, lcs.split(','));
+                        if (bounds) {
+                            bounds.extend(markers[name].getLatLng().toBounds(1000));
+                        }
+                        else {
+                            bounds = markers[name].getLatLng().toBounds(1000);
+                        }
+                    }
+                }
+                load_marker("start");
+                load_marker("end");
+                selected_tiles = []
+                let lcs = localStorage.getItem("selected_tiles")
+                console.log(lcs)
+                if (lcs) {
+                    selected_tiles = lcs.split(",")
+                    for (let i=0; i<selected_tiles.length; i++) {
+                        if (bounds) {
+                            bounds.extend(boundsFromTileId(selected_tiles[i]));
+                        }
+                        else {
+                            bounds = boundsFromTileId(selected_tiles[i]);
+                        }
+
+                    }
+                    updateMapTiles();
+                }
+                mymap.fitBounds(bounds);
+                request_route();
+            }  // local Storage recovery
+        } // START AND END MARKER MANAGEMENT
+
+
 
         $("#gpxMessage").hide();
 
@@ -518,77 +573,16 @@ $(document).ready(function(){
                 }
             });
         });
-        $("button#bRevert").on("click", function(e) {
-            m = markers["end"]
-            markers["end"] = markers["start"]
-            markers["start"] = m
-            let latlng = markers["start"].getLatLng();
-            localStorage.setItem("start", latlng.lat+","+latlng.lng);
-            latlng = markers["end"].getLatLng();
-            localStorage.setItem("end", latlng.lat+","+latlng.lng);
-            request_route();
-        });
-
-        function add_marker(name, latlng) {
-            if ((name in markers) && markers[name]) {
-                markers[name].setLatLng(latlng);
-            } else {
-                markers[name] =  L.marker(latlng, {draggable: true, title: name}).addTo(mymap).on("dragend", function(e){
-                    localStorage.setItem(this.options.title, this.getLatLng().lat+","+this.getLatLng().lng);
-                    request_route();
-                });
-            }
-        }
-
-        mymap.on("click", function (e) {
-            if (selectLoc==false) return;
-            add_marker(selectLoc, e.latlng);
-            localStorage.setItem(selectLoc, e.latlng.lat+","+e.latlng.lng);
-            selectLoc = false;
-            request_route();
-        });
 
 
-        { // local Storage recovery
-            let bounds = false;
-            function load_marker(name) {
-                let lcs = localStorage.getItem(name)
-                if (lcs) {
-                    add_marker(name, lcs.split(','));
-                    if (bounds) {
-                        bounds.extend(markers[name].getLatLng().toBounds(1000));
-                    }
-                    else {
-                        bounds = markers[name].getLatLng().toBounds(1000);
-                    }
-                }
-            }
-            load_marker("start");
-            load_marker("end");
-            selected_tiles = []
-            let lcs = localStorage.getItem("selected_tiles")
-            console.log(lcs)
-            if (lcs) {
-                selected_tiles = lcs.split(",")
-                for (let i=0; i<selected_tiles.length; i++) {
-                    if (bounds) {
-                        bounds.extend(boundsFromTileId(selected_tiles[i]));
-                    }
-                    else {
-                        bounds = boundsFromTileId(selected_tiles[i]);
-                    }
 
-                }
-                updateMapTiles();
-            }
-            mymap.fitBounds(bounds);
-            request_route();
-        }
 
-        {
+
+
+        { // ROUTES LIBRARY
             var saved_traces =[];
 
-            { // ROUTES localstorage
+            { // Routes library local Storage
                 let trace_count = parseInt(localStorage.getItem("trace_count") || "0");
                 for (let trace_val=0; trace_val<trace_count; trace_val++) {
                     let coords = localStorage.getItem('trace'+trace_val+'_coords').split(",").map(x => x.split(" "));
@@ -598,7 +592,7 @@ $(document).ready(function(){
                     let dist = localStorage.getItem('trace'+trace_val+'_length');
                     $('<a href="#" class="list-group-item list-group-item-action"><span>'+name+'</span><span class="badge badge-light" style="float:right;">'+dist+'</span></a>').appendTo('#traces-list')
                 }
-            }
+            } // Routes library local Storage
 
             function refresh_localstorage_traces() {
                 count = $('div#traces-list').length;
@@ -702,6 +696,25 @@ $(document).ready(function(){
                 }
             });
 
+            function download_gpx(name, trace) {
+                let latlons = trace.getLatLngs().map(x => x.lat+","+x.lng);
+                $.ajax({
+                    type: "POST",
+                    dataType: "json",
+                    url: 'generate_gpx',
+                    data: { name : name, points: latlons },
+                    success: function ( data ) {
+                        if (data.status=="OK") {
+                           $("a#gpxDownload").attr("href", data.path);
+                           $("a#gpxDownload")[0].click();
+                        }
+                        else {
+                           $("#gpxMessage").text(data.message).show();
+                        }
+                    }
+                });
+            }
+
             $('#togpx-trace').on('click', function(e) {
                 let pos = $('div#traces-list>.active').index();
                 let name = $('div#traces-list>.active>span:first').text();
@@ -709,6 +722,7 @@ $(document).ready(function(){
                 console.log("togpx-trace.click()")
                 let latlons = trace.getLatLngs().map(x => x.lat+","+x.lng);
                 $("#download-error-toast").toast('hide')
+                $("#gpxMessage").prependTo($(this).parents("div.collapse"));
 
                 $.ajax({
                     type: "POST",
@@ -727,7 +741,7 @@ $(document).ready(function(){
                 });
             });
 
-        }
+        }  // ROUTES LIBRARY
 
         $('#export-tiles').on('click', function(e) {
             name = ""

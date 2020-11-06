@@ -52,6 +52,14 @@
             transform: rotate(90deg);
         }
 
+    .col .row {
+        margin-right:0 !important;
+        margin-left:0 !important;
+    }
+    /*.row .col .row .col{
+        padding-right: 0 !important;
+        padding-left: 0 !important;
+    }/*
     </style>
 
 </head>
@@ -60,11 +68,12 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md-8">
+        <div class="col col-md-8">
             <div id="mapid" style="height: 700px;">
             </div>
+        Route Tiles by <a href="mailto:benoit.bouillard@gmail.com">Benoît Bouillard</a>
         </div>
-        <div class="col-md-4">
+        <div class="col col-md-4">
 
             <h3 aria-expanded="true" data-target="#section-configuration" data-toggle="collapse"><span data-i18n="msg-section-configuration">Configuration</span></h3>
 
@@ -76,24 +85,34 @@
                         <option data-locale="fr" href="#">Français</option>
                     </select>
                 </div>
+
                 <div class="form-group row">
-                    <label class="col-sm-8 col-form-label" data-i18n="msg-config-mode" for="mode-selection"></label>
-                    <select class="col-sm-4 form-control" id="mode-selection" >
-                        <option data-i18n="message-mode-roadcycle" data-mode="roadcycle" href="#">Roadcycle</option>
-                        <option data-i18n="message-mode-foot" data-mode="foot" href="#">Foot</option>
-                        <option data-i18n="message-mode-trail" data-mode="trail" href="#">Trail</option>
+                    <label class="col-sm-8 col-form-label" data-i18n="msg-config-route-mode" for="route-selection"></label>
+                    <select class="col-sm-4 form-control config-storage" id="route-mode" >
+                        <option data-i18n="message-config-route-tiles" data-value="tiles" href="#">route-tiles</option>
+                        <option data-i18n="message-config-route-isochrone-dist" data-value="isochrone-dist" href="#">isochrone-dist</option>
                     </select>
                 </div>
+
+                <div class="form-group row">
+                    <label class="col-sm-8 col-form-label" data-i18n="msg-config-mode" for="mode-selection"></label>
+                    <select class="col-sm-4 form-control config-storage" id="mode-selection" >
+                        <option data-i18n="message-mode-roadcycle" data-value="roadcycle" href="#">Roadcycle</option>
+                        <option data-i18n="message-mode-foot" data-value="foot" href="#">Foot</option>
+                        <option data-i18n="message-mode-trail" data-value="trail" href="#">Trail</option>
+                    </select>
+                </div>
+
                 <div class="form-group row">
                     <label class="col-sm-8 col-form-label" data-i18n="message-turnaround-cost" for="turnaround-cost"></label>
-                    <select class="col-sm-4 form-control" id="turnaround-cost">
-                        <option data-cost="0" data-i18n="message-cost-no" href="#">No cost</option>
-                        <option data-cost="0.1" href="#">100m</option>
-                        <option data-cost="0.2" href="#">200m</option>
-                        <option data-cost="0.5" href="#">500m</option>
-                        <option data-cost="1.0" href="#">1km</option>
-                        <option data-cost="2.0" href="#">2km</option>
-                        <option data-cost="5.0" href="#">5km</option>
+                    <select class="col-sm-4 form-control config-storage" id="turnaround-cost">
+                        <option data-value="0" data-i18n="message-cost-no" href="#">No cost</option>
+                        <option data-value="0.1" href="#">100m</option>
+                        <option data-value="0.2" href="#">200m</option>
+                        <option data-value="0.5" href="#">500m</option>
+                        <option data-value="1.0" href="#">1km</option>
+                        <option data-value="2.0" href="#">2km</option>
+                        <option data-value="5.0" href="#">5km</option>
                     </select>
                 </div>
             </div>
@@ -153,21 +172,23 @@
                     <!--<button type="button" class="btn btn-info" id="export-tiles">Exporter les carrés en KML</button>-->
                 </div>
 
-
-                <div class="alert alert-light" id="progress-message">
-                    <div class="spinner-border spinner-border-sm text-primary" id="spinner-searching" role="status" style="display:none;">
-                        <span class="sr-only">Searching...</span>
+                <div class="form-group row">
+                    <div class="alert col col-4" data-i18n="msg-status">Status</div>
+                    <div class="alert alert-light col" id="progress-message">
+                        <div class="spinner-border spinner-border-sm text-primary" id="spinner-searching" role="status" style="display:none;">
+                            <span class="sr-only">Searching...</span>
+                        </div>
+                        <span id="message"></span>
+                        <span class="badge badge-light" id="length" style="float:right;"></span>
                     </div>
-                    <span id="message"></span>
-                    <span class="badge badge-light" id="length" style="float:right;"></span>
                 </div>
 
                 <h6 data-i18n="msg-subsection-download">Download</h6>
                 <div class="form-group row">
-                    <label class="col-form-label col-sm-4" data-i18n="msg-download-filename" for="gpxFilename">Nom du fichier</label>
-                    <input class="form-control col-sm-6" id="gpxFilename" name="gpxFilename" type="text"/>
-                    <div class="col-sm-2">
-                        <button class="btn btn-primary" id="bGenerateGpx">
+                    <label class="col-form-label col col-4" data-i18n="msg-download-filename" for="gpxFilename">Nom du fichier</label>
+                    <input class="form-control col col-6" id="gpxFilename" name="gpxFilename" type="text"/>
+                    <div class="col col-2">
+                        <button class="btn btn-primary btn-block" id="bGenerateGpx">
                             <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round"
                                  stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
                                  xmlns="http://www.w3.org/2000/svg">
@@ -188,10 +209,10 @@
 
             <div class="collapse show" id="section-routes">
                 <div class="form-group row">
-                    <label class="col-form-label col-sm-4" data-i18n="msg-route-name" for="traceName">Name</label>
-                    <input class="form-control col-sm-6" id="traceName" name="traceName" type="text"/>
-                    <div class="col-sm-2">
-                        <button class="btn btn-primary" id="addTrace" type="button">
+                    <label class="col-form-label col col-4" data-i18n="msg-route-name" for="traceName">Name</label>
+                    <input class="form-control col col-6" id="traceName" name="traceName" type="text"/>
+                    <div class="col col-2">
+                        <button class="btn btn-primary btn-block" id="addTrace" type="button">
                             <svg fill="none" height="1em" id="i-merge" stroke="currentcolor" stroke-linecap="round"
                                  stroke-linejoin="round" stroke-width="2" viewBox="0 0 20 20" width="1em"
                                  xmlns="http://www.w3.org/2000/svg">
@@ -310,4 +331,5 @@
 
 </body>
 </html>
+
 

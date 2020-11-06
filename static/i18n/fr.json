@@ -28,13 +28,17 @@
   "msg-section-configuration": "Configuration",
   "msg-section-route": "Itinéraire",
   "msg-config-language": "Langue",
-  "msg-config-mode": "Mode",
+  "msg-config-mode": "Type de voies",
   "msg-route-name": "Nom de la route",
   "msg-download-filename": "Nom du fichier",
   "msg-button-rename": "Renommer la route",
   "msg-button-download": "Télécharger la route",
   "msg-button-merge": "Fusionner avec la prochaine route sélectionnée",
   "msg-button-delete": "Supprimer la route",
-  "msg-subsection-download": "Téléchargement"
-
+  "msg-subsection-download": "Téléchargement",
+  "msg-status": "Status",
+  "msg-config-route-mode": "Mode",
+  "message-config-route-tiles": "Carrés",
+  "message-config-route-isochrone-dist": "Isochrone distance",
+  "message-config-route-isochrone-time": "Isochrone durée"
 }
