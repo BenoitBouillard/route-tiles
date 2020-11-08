@@ -98,16 +98,25 @@ TYPES = {
         "weights": {"primary": 0.05, "secondary": 0.15, "tertiary": 0.3, "unclassified": 1,
                     "residential": 1, "track": 1.5, "service": 1, "bridleway": 5, "path": 1.5},
         "access": ["access", "horse"]},
+    "footroad": {
+        "mode": "foot",
+        "weights": {"trunk": 0.3, "primary": 0.6, "secondary": 0.9, "tertiary": 1,
+                    "unclassified": 1, "residential": 1, "living_street": 1, "track": 0, "service": 1,
+                    "bridleway": 1, "footway": 1, "path": 0, "steps": 1},
+        "access": ["access", "foot"],
+        "reverse_way":True},
     "foot": {
         "weights": {"trunk": 0.3, "primary": 0.6, "secondary": 0.9, "tertiary": 1,
                     "unclassified": 1, "residential": 1, "living_street": 1, "track": 1, "service": 1,
                     "bridleway": 1, "footway": 1, "path": 1, "steps": 1},
-        "access": ["access", "foot"]},
+        "access": ["access", "foot"],
+    "reverse_way":True},
     "trail": {
         "weights": {"trunk": 0.1, "primary": 0.3, "secondary": 0.6, "tertiary": 0.7,
                     "unclassified": 0.7, "residential": 0.8, "living_street": 0.8, "track": 0.9, "service": 0.8,
                     "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1},
-        "access": ["access", "foot"]},
+        "access": ["access", "foot"],
+        "reverse_way":True},
     "tram": {
         "weights": {"tram": 1, "light_rail": 1},
         "access": ["access"]},
@@ -197,6 +206,7 @@ class Datastore:
         # Routing data
         print("############ DATASTORE init ################")
         self.routing = storage_class()
+        self.routing_reverse = storage_class()
         self.not_update_routing = storage_class()
         self.rnodes = storage_class()
         self.mandatoryMoves = storage_class()
@@ -222,6 +232,8 @@ class Datastore:
             self.transport = transport if transport not in ["cycle",
                                                             "roadcycle"] else "bicycle"  # Osm uses bicycle in tags
             self.type = TYPES[transport].copy()
+            if 'mode' in self.type:
+                self.transport = self.type['mode']
 
         # Load local file if it was passed
         if self.localFile:
@@ -229,6 +241,7 @@ class Datastore:
 
     def clean(self):
         self.routing = self.storage_class()
+        self.routing_reverse = self.storage_class()
 
         # Info about OSM
         self.tiles = self.storage_class()
@@ -460,7 +473,7 @@ class Datastore:
         if not oneway and (tags.get("junction", "") in ["roundabout", "circular"] or highway == "motorway"):
             oneway = "yes"
 
-        if self.transport in ["foot", "trail"] or (
+        if self.type.get("reverse_way",False) or (
                 oneway in ["yes", "true", "1", "-1"] and tags.get("oneway:" + self.transport, "yes") == "no"):
             oneway = "no"
 
@@ -490,16 +503,22 @@ class Datastore:
                 self.routing[node1_id] = {}
             if node2_id not in self.routing:
                 self.routing[node2_id] = {}
+            if node1_id not in self.routing_reverse:
+                self.routing_reverse[node1_id] = {}
+            if node2_id not in self.routing_reverse:
+                self.routing_reverse[node2_id] = {}
 
             # Is way traversible forward?
             if oneway not in ["-1", "reverse"]:
                 if node1_id not in self.not_update_routing or node2_id not in self.not_update_routing[node1_id]:
                     self.routing[node1_id][node2_id] = weight
+                    self.routing_reverse[node2_id][node1_id] = weight
 
             # Is way traversible backword?
             if oneway not in ["yes", "true", "1"]:
                 if node2_id not in self.not_update_routing or node1_id not in self.not_update_routing[node2_id]:
                     self.routing[node2_id][node1_id] = weight
+                    self.routing_reverse[node1_id][node2_id] = weight
 
     def find_node(self, lat, lon):
         """Find the nearest node that can be the start of a route"""
