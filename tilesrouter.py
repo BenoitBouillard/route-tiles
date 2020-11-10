@@ -63,6 +63,40 @@ def tiles_to_kml(tiles, filename, name):
     return True
 
 
+def dichotomie(function, max_ecart=0.0005):
+    step = 0.5
+    x = 1
+    ecart = function(x)
+    while math.fabs(ecart) > max_ecart:
+        if ecart > 0:
+            x = x + step
+        else:
+            x = x - step
+        step /= 2
+        ecart = function(x)
+    return x
+
+
+def export_queue(router, _queue, tag_length="cost", tag_name="cost", new_item=None):
+    def write_item(hf, q):
+        route = [i for i in q['nodes']]
+        hf.write(" { \n")
+        hf.write("  'name':'{0}-{1:.3f}',\n".format('x', q[tag_name]))
+        hf.write("  'length':{},\n".format(q[tag_length]))
+        hf.write("  'route':[\n")
+        for lat, lon in list(map(router.node_lat_lon, route)):
+            hf.write("[{},{}],\n".format(lat, lon))
+        hf.write("  ],\n")
+        hf.write("  },\n")
+
+    with open('debug/routes.js', 'w') as hfile:
+        hfile.write("var routes = [\n")
+        if new_item:
+            write_item(hfile, new_item)
+        for q in _queue[:100]:
+            write_item(hfile, q)
+        hfile.write("];\n")
+
 class Route(object):
     def __init__(self, route, router):
         self.route = route
@@ -723,51 +757,10 @@ class RouteServer(object):
     def do_route_isochrone(self, start, config):
         """Do the routing"""
         _queue = []
-        _closeNode = True
         _longest_route = None
 
         def _export_queue(new_item=None):
-            nonlocal _queue, _closeNode
-            try:
-                with open('debug/routes.js', 'w') as hf:
-                    hf.write("var routes = [\n")
-                    if new_item:
-                        route = [i for i in new_item['right']['nodes'][::-1]+new_item['left']["nodes"]]
-                        hf.write(" { \n")
-                        hf.write("  'name':'{0}-{1:.3f}',\n".format('x',
-                                                                    new_item['cost']))
-                        hf.write("  'length':{},\n".format(new_item['cost']))
-                        hf.write("  'route':[\n")
-                        for lat, lon in list(map(self.router.node_lat_lon, route)):
-                            hf.write("[{},{}],\n".format(lat, lon))
-                        hf.write("  ],\n")
-                        hf.write("  },\n")
-                    for q in _queue[:100]:
-                        route = [i for i in q['right']['nodes'][::-1]+q['left']["nodes"]]
-                        hf.write(" { \n")
-                        hf.write("  'name':'{0}-{1:.3f}',\n".format('x', q['cost']))
-                        hf.write("  'length':{},\n".format(q['cost']))
-                        hf.write("  'route':[\n")
-                        for lat, lon in list(map(self.router.node_lat_lon, route)):
-                            hf.write("[{},{}],\n".format(lat, lon))
-                        hf.write("  ],\n")
-                        hf.write("  },\n")
-                    hf.write("];\n")
-            except:
-                pass
-
-        def _queue_insert(queue_item):
-            nonlocal _queue
-            # Try to insert, keeping the queue ordered by decreasing heuristic cost
-            position = 0
-            for test in _queue:
-                if test["cost"] < queue_item["cost"]:
-                    _queue.insert(position, queue_item)
-                    break
-                position += 1
-
-            else:
-                _queue.append(queue_item)
+            export_queue(self.router, _queue, tag_length="cost", tag_name="hcost", new_item=new_item)
 
         def dist(a,b):
             return distance(self.router.rnodes[a], self.router.rnodes[b])
@@ -784,10 +777,10 @@ class RouteServer(object):
                 d = distance(self.router.rnodes[s], self.router.rnodes[e])
                 r = (e,)
                 if e in self.router.routing:
-                    keys = list(filter(lambda k:k!=s or k in segment_cuts, self.router.routing[e].keys()))
+                    keys = list(filter(lambda k: k != s, self.router.routing[e].keys()))
                 else:
                     keys=[]
-                while len(keys) == 1:
+                while len(keys) == 1 and e not in segment_cuts:
                     s = e
                     e = keys[0]
                     d += distance(self.router.rnodes[s], self.router.rnodes[e])
@@ -804,7 +797,7 @@ class RouteServer(object):
 
             return segments[(item_start, item_end)]
 
-        def if_route_exists(start, end, forbidden_nodes):
+        def if_route_exists(start, end, max_length, forbidden_nodes):
             """Do the routing"""
             _closed = set([start])
             _loc_queue = []
@@ -812,40 +805,14 @@ class RouteServer(object):
             _end = end
 
             def _export_queue(new_item=None):
-                try:
-                    with open('debug/routes.js', 'w') as hf:
-                        hf.write("var routes = [\n")
-                        if new_item:
-                            route = [i for i in new_item["nodes"]]
-                            hf.write(" { \n")
-                            hf.write("  'name':'{0}-{1:.3f}',\n".format('x',
-                                                                        new_item['cost']))
-                            hf.write("  'length':{},\n".format(new_item['cost']))
-                            hf.write("  'route':[\n")
-                            for lat, lon in list(map(self.router.node_lat_lon, route)):
-                                hf.write("[{},{}],\n".format(lat, lon))
-                            hf.write("  ],\n")
-                            hf.write("  },\n")
-                        for q in _loc_queue[:100]:
-                            route = [i for i in q['nodes']]
-                            hf.write(" { \n")
-                            hf.write("  'name':'{0}-{1:.3f}',\n".format('x', q['cost']))
-                            hf.write("  'length':{},\n".format(q['cost']))
-                            hf.write("  'route':[\n")
-                            for lat, lon in list(map(self.router.node_lat_lon, route)):
-                                hf.write("[{},{}],\n".format(lat, lon))
-                            hf.write("  ],\n")
-                            hf.write("  },\n")
-                        hf.write("];\n")
-                except:
-                    pass
+                export_queue(self.router, _loc_queue, tag_length="cost", tag_name="heuristic_cost", new_item=new_item)
 
             def _loc_queue_insert(queue_item):
                 nonlocal _loc_queue
                 # Try to insert, keeping the queue ordered by decreasing heuristic cost
                 position = 0
                 for test in _loc_queue:
-                    if test["heuristic_cost"] < queue_item["heuristic_cost"]:
+                    if test["heuristic_cost"] > queue_item["heuristic_cost"]:
                         _loc_queue.insert(position, queue_item)
                         break
                     position += 1
@@ -856,7 +823,7 @@ class RouteServer(object):
             # Define function that addes to the queue
             def _loc_add_to_queue(item_start, item_end, queue_so_far):
                 """Add another potential route to the queue"""
-                nonlocal _closed, _loc_queue, _loc_closeNode, end
+                nonlocal _closed, _loc_queue, _loc_closeNode
 
                 # Do not turn around at a node (don't do this: a-b-a)
                 # if len(queueSoFar["nodes"].split(",")) >= 2 and queueSoFar["nodes"].split(",")[-2] == str(end):
@@ -867,47 +834,35 @@ class RouteServer(object):
                     return False
                 segment_distance, segment_nodes = segment
 
-                if _end in segment_nodes:
-                    while segment_nodes[-1]!=end:
-                        segment_distance -= dist(segment_nodes[-1], segment_nodes[-2])
-                        segment_nodes = segment_nodes[:-1]
-
                 if set(segment_nodes) & _closed:
                     return False
 
-                if segment_nodes[-1] in forbidden_nodes and _end not in segment_nodes:
+                if segment_nodes[-1] in forbidden_nodes:
                     return False
 
                 total_cost = queue_so_far["cost"] + segment_distance
 
                 # t = time.time() if len(min_dists)==0 else None
                 hc = distance(self.router.rnodes[segment_nodes[-1]], self.router.rnodes[_end])
-
-                heuristic_cost = total_cost + hc
-
-                all_nodes = queue_so_far["nodes"] + segment_nodes
+                if hc > max_length:
+                    return None
 
                 # Create a hash for all the route's attributes
                 queue_item = {
                     "cost": total_cost,
-                    "heuristic_cost": heuristic_cost,
-                    "nodes": all_nodes,
-                    "end": segment_nodes
+                    "heuristic_cost": total_cost + hc,
+                    "nodes": queue_so_far["nodes"] + segment_nodes,
                 }
 
                 _loc_queue_insert(queue_item)
                 _closed |= set(segment_nodes)
 
-
-            # Start by queueing all outbound links from the start node
-            if start not in self.router.routing:
-                raise KeyError("node {} doesn't exist in the graph".format(start))
-
-            elif start == end:
+            if start == end:
                 return {"cost": 0, "nodes": (start,)}
             else:
                 for linkedNode in list(self.router.routing[start]):
-                    _loc_add_to_queue(start, linkedNode, {"cost": 0, "nodes": (start,)})
+                    if linkedNode not in forbidden_nodes:
+                        _loc_add_to_queue(start, linkedNode, {"cost": 0, "nodes": (start,)})
 
             # Limit for how long it will search
             while not self._exit:
@@ -919,70 +874,63 @@ class RouteServer(object):
                 else:
                     return False
 
-                considered_node = next_item["end"]
+                considered_node = next_item["nodes"][-1]
 
                 # Found the end node - success
-                if considered_node[-1] == end:
+                if considered_node == end:
                     return next_item
 
                 # If no, add all possible nodes from x to queue
-                elif considered_node[-1] in self.router.routing:
-                    for next_node, weight in list(self.router.routing[considered_node[-1]].items()):
-                        if next_node not in _closed and next_node not in forbidden_nodes:
-                            _loc_add_to_queue(considered_node[-1], next_node, next_item)
+                for next_node, weight in list(self.router.routing[considered_node].items()):
+                    if next_node not in _closed and next_node not in forbidden_nodes:
+                        _loc_add_to_queue(considered_node, next_node, next_item)
             else:
                 return False
 
+        def _queue_insert(queue_item):
+            nonlocal _queue
+            # Try to insert, keeping the queue ordered by decreasing heuristic cost
+            position = 0
+            for test in _queue:
+                if test["hcost"] < queue_item["hcost"]:
+                    _queue.insert(position, queue_item)
+                    break
+                position += 1
+
+            else:
+                _queue.append(queue_item)
+
         # Define function that adds to the queue
-        def _add_to_queue(item_start, item_end, branch, queue_so_far, item_weight=1):
+        def _add_to_queue(item_start, item_end, queue_so_far):
             """Add another potential route to the queue"""
             nonlocal _queue, _closeNode
 
             segment = find_segment(item_start, item_end)
             if not segment:
                 return False
+
             segment_distance, segment_nodes = segment
 
-            # Do not cross
-            if segment_nodes[-1] in queue_so_far[branch]["nodes"] or segment_nodes[-1] in queue_so_far['right' if branch=='left' else 'left']["nodes"][:-1]:
-               return None
+            if segment_nodes[-1] in queue_so_far['nodes'] and segment_nodes[-1]!=start:
+                return False
 
-            edge_cost = segment_distance
+            total_cost = queue_so_far["cost"] + segment_distance
+            all_nodes = queue_so_far["nodes"] + segment_nodes
 
-            total_cost = queue_so_far[branch]["cost"] + edge_cost
-
-            all_nodes = queue_so_far[branch]["nodes"] + segment_nodes
-
-
-            # Create a hash for all the route's attributes
-            queue_item = {
-                "left": queue_so_far["left"] if branch=="right" else {"cost":total_cost, "nodes":all_nodes},
-                "right": queue_so_far["right"] if branch=="left" else {"cost":total_cost, "nodes":all_nodes}
-            }
-
-            route_to_close = if_route_exists(queue_item["left"]['nodes'][-1],
-                                             queue_item["right"]['nodes'][-1],
-                                             list(queue_item["left"]['nodes'][:-1]+queue_item["right"]['nodes'][:-1]))
+            route_to_close = if_route_exists(segment_nodes[-1],
+                                             start,
+                                             config['target_dist'] + config['target_threshold'] - total_cost,
+                                             list(all_nodes[1:-1]))
             if route_to_close:
-                queue_item['middle'] = route_to_close
-                queue_item["cost"] = queue_item['left']['cost'] + queue_item['right']['cost'] + queue_item['middle']['cost']
-                if queue_item["cost"] <= config['target_dist']:
-                    _queue_insert(queue_item)
-                    return queue_item
+                # Create a hash for all the route's attributes
+                queue_item = {
+                    "cost": total_cost,
+                    "nodes": all_nodes,
+                    "hcost" : total_cost + route_to_close['cost']
+                }
+                _queue_insert(queue_item)
+                return queue_item
             return None
-
-        def dichotomie(function, max_ecart=0.0005):
-            step = 0.5
-            x = 1
-            ecart = function(x)
-            while math.fabs(ecart) > max_ecart:
-                if ecart > 0:
-                    x = x + step
-                else:
-                    x = x - step
-                step /= 2
-                ecart = function(x)
-            return x
 
         start_latlon = self.router.rnodes[start]
         dlat = dichotomie(lambda x: config["radius"] - distance(start_latlon, (start_latlon[0]+x, start_latlon[1])))
@@ -994,59 +942,48 @@ class RouteServer(object):
         if start not in self.router.routing:
             raise KeyError("node {} doesn't exist in the graph".format(start))
 
-        from itertools import combinations
-        for comb in combinations(list(self.router.routing[start]) ,2):
-            queue_item = {
-                "left": {"cost":dist(start, comb[0]), "nodes":(start, comb[0])},
-                "right": {"cost":dist(start, comb[1]), "nodes":(start, comb[1])}
-            }
-            queue_item["cost"] = queue_item['left']['cost'] + queue_item['right']['cost']
-            _queue_insert(queue_item)
+        for next_node, weight in list(self.router.routing[start].items()):
+            _add_to_queue(start, next_node, {'nodes':(start, ), 'cost':0})
 
         # Limit for how long it will search
         count = 0
         while _queue and not self._exit:
             count += 1
             _closeNode = True
-            if count%10000==0:
+            if count%100000==0:
+                print(count, len(_queue), len(segments))
                 _export_queue(_longest_route)
 
             # Pop first item from queue for routing. If queue it's empty - it means no route exists
             next_item = _queue.pop(0)
 
-            if next_item['left']['cost']<next_item['right']['cost']:
-                consider_branch = 'left'
-                other_branch = 'right'
-            else:
-                consider_branch = 'right'
-                other_branch = 'left'
-            considered_node = next_item[consider_branch]["nodes"][-1]
+            considered_node = next_item["nodes"][-1]
 
             # Found the end node - success
-            if considered_node == next_item[other_branch]["nodes"][-1] and len(next_item[other_branch]["nodes"])>1:
+            if considered_node == start and len(next_item["nodes"])>1:
                 if next_item['cost'] > config['target_dist']:
                     _export_queue(next_item)
                     print(next_item)
-                    return "success", next_item["left"]["nodes"] + next_item["right"]["nodes"][::-1]
+                    return "success", next_item["nodes"]
                 else:
                     if not _longest_route or next_item['cost'] > _longest_route['cost']:
                         #_export_queue(next_item)
-                        self._min_route = ','.join(str(a) for a in (next_item["left"]["nodes"] + next_item["right"]["nodes"][::-1]))
+                        self._min_route = ','.join(str(a) for a in next_item["nodes"])
                         self.min_length = next_item['cost']
                         print("Find new longest route: {:.03}km ({})".format(next_item['cost'], len(_queue)))
                         _longest_route =  next_item # [int(i) for i in next_item["nodes"].split(",")]
                 continue
 
             # If no, add all possible nodes from x to queue
-            elif considered_node in self.router.routing:
-                for next_node, weight in list(self.router.routing[considered_node].items()):
-                    _add_to_queue(considered_node, next_node, consider_branch, next_item, weight)
-
+            for next_node, weight in list(self.router.routing[considered_node].items()):
+                if (next_node, considered_node) not in zip(next_item['nodes'][:-1], next_item['nodes'][1:]):
+                    if next_node not in next_item['nodes'] or next_node==start:
+                        _add_to_queue(considered_node, next_node, next_item)
 
         if _longest_route:
-            print(count)
+            print(count, len(segments))
             _export_queue(_longest_route)
-            return "success", _longest_route["left"]["nodes"] + _longest_route["right"]["nodes"][::-1]
+            return "success", _longest_route["nodes"]
         return "gave_up", []
 
     def generate_gpx(self, file_name, gpx_name):
@@ -1065,12 +1002,22 @@ if __name__ == '__main__':
     rs = RouteServer()
     # print(computeMissingKml(open("missing_tiles.kml", "rb")))
 
-    pprint(rs.start_route('footroad', [49.019971703799264,1.3924220186037095],
+    pprint(rs.start_route('trail', [49.213139772606155,1.3080430607664086],
                         [49.213139772606155,1.3080430607664086],
-                        [], config={'route_mode':'isochrone-dist', 'radius':1.0, 'target_dist':5.0, 'error_max':0.2,
-                                               'turnaround_cost':1.5}, thread=False)[1])
+                        [], config={'route_mode':'isochrone-dist', 'radius':1.3, 'target_dist':15.0, 'target_threshold':0.2,
+                                               'turnaround_cost':1.5}, thread=False)[1].route)
 
     exit()
+    pprint(rs.start_route('footroad', [49.019971703799264,1.3924220186037095],
+                        [49.213139772606155,1.3080430607664086],
+                        [], config={'route_mode':'isochrone-dist', 'radius':0.3, 'target_dist':5.0, 'target_threshold':0.2,
+                                               'turnaround_cost':1.5}, thread=False)[1])
+    pprint(rs.start_route('footroad', [49.019854,1.389280],
+                        [49.213139772606155,1.3080430607664086],
+                        [], config={'route_mode':'isochrone-dist', 'radius':0.1, 'target_dist':5.0, 'target_threshold':0.2,
+                                               'turnaround_cost':1.5}, thread=False)[1])
+
+
     pprint(rs.start_route('foot', [49.213139772606155,1.3080430607664086],
                         [49.213139772606155,1.3080430607664086],
                         [], config={'route_mode':'isochrone-dist', 'distance':1.0, 'target_dist':10,

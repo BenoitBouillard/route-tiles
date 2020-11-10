@@ -230,6 +230,20 @@ $(document).ready(function(){
                     request_route();
                 });
             });
+
+            $('input.config-storage').each(function(){
+                let id = this.id;
+                let storage = localStorage.getItem(id)
+                if (storage) {
+                    $(this).val(storage);
+                }
+
+                $(this).on('change', function(e) {
+                    e.preventDefault();
+                    localStorage.setItem(this.id, $(this).val());
+                    request_route();
+                });
+            });
         } // CONFIG-STORAGE
 
         var routeId="";
@@ -255,9 +269,16 @@ $(document).ready(function(){
             setMessageAlert('info');
 
             // Check if enought data for routing
-            if ((!('start' in markers)) || (!('end' in markers) && selected_tiles.length==0)) {
-                $("#message").text($.i18n("message-state-cancel"));
-                return;
+            if ($('#route-mode').find(':selected').data('value')=="isochrone-dist") {
+                if (!('start' in markers)) {
+                    $("#message").text($.i18n("message-state-cancel"));
+                    return;
+                }
+            } else {
+                if ((!('start' in markers)) || (!('end' in markers) && selected_tiles.length==0)) {
+                    $("#message").text($.i18n("message-state-cancel"));
+                    return;
+                }
             }
             $("#message").text($.i18n("message-state-wait"));
             $('button#addTrace').prop("disabled", true);
@@ -275,15 +296,35 @@ $(document).ready(function(){
             $("#spinner-searching").show();
         }
 
+        var radiusCircle=false;
         function start_route(timeout_id) {
             if (timeout_id != active_timeout) return;
+
+            if ($('#route-mode').find(':selected').data('value')=="isochrone-dist") {
+                let radius = parseFloat($('input#radius').val())*1000;
+                if (radiusCircle) {
+                    radiusCircle.setRadius(radius);
+                    radiusCircle.setLatLng(markers['start'].getLatLng());
+                } else {
+                    radiusCircle = L.circle(markers['start'].getLatLng(), {radius: radius}).addTo(mymap);
+                }
+            } else {
+                if (radiusCircle) {
+                    radiusCircle.remove();
+                    radiusCircle = false;
+                }
+            }
+
             $("#message").text($.i18n("message-state-ask-route"));
-            let data = { 'sessionId'      : sessionId,
-                         'start'          : latlonToQuery(markers['start'].getLatLng()),
-                         'turnaroundCost' : $("#turnaround-cost").find(':selected').data('value'),
-                         'mode'           : $('#mode-selection').find(':selected').data('value'),
-                         'route-mode'     : $('#route-mode').find(':selected').data('value'),
-                         'tiles'          : selected_tiles
+            let data = { 'sessionId'       : sessionId,
+                         'start'           : latlonToQuery(markers['start'].getLatLng()),
+                         'turnaroundCost'  : $("#turnaround-cost").find(':selected').data('value'),
+                         'mode'            : $('#mode-selection').find(':selected').data('value'),
+                         'route-mode'      : $('#route-mode').find(':selected').data('value'),
+                         'radius'          : $('input#radius').val(),
+                         'target_dist'     : $('input#target-length').val(),
+                         'target_threshold': $('input#target-threshold').val(),
+                         'tiles'           : selected_tiles
                        }
             if ('end' in markers) {
                 data['end'] = latlonToQuery(markers['end'].getLatLng());
@@ -336,6 +377,9 @@ $(document).ready(function(){
                                 routePolyline.setLatLngs(data.route).bringToFront();
                             }
                             $("#length").text(parseFloat(data['length']).toFixed(2)+" km");
+                            if ($('#route-mode').find(':selected').data('value')=="isochrone-dist") {
+                                $('button#addTrace').prop("disabled", false);
+                            }
                         }
                         if (data['state']!='complete') {
                             timeoutID = window.setTimeout(route_status, 1000, ++active_timeout);

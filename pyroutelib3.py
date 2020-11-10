@@ -63,6 +63,18 @@ def weight_primary_roadcycle(t):
         return 0.5
     return 0.25
 
+def weight_primary_foot(t):
+    w = int(t.get("maxspeed", "80"))
+    if w>=90:
+        return 0
+    if w <= 50:
+        return 1
+    if w <= 70:
+        return 0.75
+    if w <= 80:
+        return 0.5
+    return 0.25
+
 
 def filter_asphalt(t):
     # Allow asphalt path and zebra crossing
@@ -100,13 +112,13 @@ TYPES = {
         "access": ["access", "horse"]},
     "footroad": {
         "mode": "foot",
-        "weights": {"trunk": 0.3, "primary": 0.6, "secondary": 0.9, "tertiary": 1,
+        "weights": {"trunk": 0.0, "primary": 0.6, "secondary": 0.9, "tertiary": 1,
                     "unclassified": 1, "residential": 1, "living_street": 1, "track": 0, "service": 1,
                     "bridleway": 1, "footway": 1, "path": 0, "steps": 1},
         "access": ["access", "foot"],
         "reverse_way":True},
     "foot": {
-        "weights": {"trunk": 0.3, "primary": 0.6, "secondary": 0.9, "tertiary": 1,
+        "weights": {"trunk": 0.3, "primary": weight_primary_foot, "secondary": 0.9, "tertiary": 1,
                     "unclassified": 1, "residential": 1, "living_street": 1, "track": 1, "service": 1,
                     "bridleway": 1, "footway": 1, "path": 1, "steps": 1},
         "access": ["access", "foot"],

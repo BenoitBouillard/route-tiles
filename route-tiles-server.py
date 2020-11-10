@@ -44,10 +44,10 @@ def check_sessions():
             timeout = timedelta(0,0,0,0,10) # 10min
         else:
             #timeout = timedelta(0,10) # 10s
-            timeout = timedelta(0,0,0,0,10) # 10min
+            timeout = timedelta(0,0,0,0,1) # 10min
 
         if datetime.now() - session.last_access > timeout:
-            print("Remove session ", session_id)
+            print("Remove session ", session_id, session.last_access)
             if not session.routeServer.is_complete:
                 print("  abort previous routing")
                 session.routeServer.abort()
@@ -139,8 +139,10 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
 
         if route_mode=='isochrone-dist':
             end = start
-            config['distance'] = 1.0 # km
-            config['target_dist'] = 15 # km
+
+            config['radius'] = float(qs['radius'][0])
+            config['target_dist'] = float(qs['target_dist'][0])
+            config['target_threshold'] = float(qs['target_threshold'][0])
 
         self.session.routeServer.start_route(mode, start, end, tiles, config=config)
         answer = {'sessionId': self.sessionId,
@@ -338,13 +340,15 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             self.sessionId = qs["sessionId"][0]
         else:
             self.sessionId = generate_random(8)
+            print("Create session", self.sessionId)
         try:
             session_object = sessionDict[self.sessionId]
         except KeyError:
             self.sessionId = generate_random(8)
             session_object = SessionElement()
             sessionDict[self.sessionId] = session_object
-            session_object.refresh()
+            print("Session not exist : Create session", self.sessionId)
+        session_object.refresh()
         check_sessions()
         return session_object
 
