@@ -118,12 +118,14 @@ TYPES = {
         "access": ["access", "foot"],
         "reverse_way":True},
     "foot": {
+        "mode": "foot",
         "weights": {"trunk": 0.3, "primary": weight_primary_foot, "secondary": 0.9, "tertiary": 1,
                     "unclassified": 1, "residential": 1, "living_street": 1, "track": 1, "service": 1,
                     "bridleway": 1, "footway": 1, "path": 1, "steps": 1},
         "access": ["access", "foot"],
     "reverse_way":True},
     "trail": {
+        "mode": "foot",
         "weights": {"trunk": 0.1, "primary": 0.3, "secondary": 0.6, "tertiary": 0.7,
                     "unclassified": 0.7, "residential": 0.8, "living_street": 0.8, "track": 0.9, "service": 0.8,
                     "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1},
