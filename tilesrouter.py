@@ -105,6 +105,7 @@ def export_queue(router, _queue, tag_length="cost", tag_name="cost", new_item=No
             write_item(hfile, q)
         hfile.write("];\n")
 
+
 class Route(object):
     def __init__(self, route, router):
         self.route = route
@@ -507,10 +508,41 @@ class RouteServer(object):
         min_dists = {}
         min_dists_fast = {}
 
+        segments = {}
+        segment_cuts = [start]
+        for z in zones:
+            for e in z.entryNodeId:
+                segments.append(e.nodeId)
+
+        def find_segment(item_start, item_end):
+            nonlocal segments
+
+            if (item_start, item_end) not in segments:
+                s = item_start
+                e = item_end
+                d = 0
+                r = ()
+                while True:
+                    e_latlon = self.router.rnodes[e]
+                    d += distance(self.router.rnodes[s], e_latlon)
+                    r += (e,)
+                    keys = list(filter(lambda k: k != s, self.router.routing[e].keys()))
+                    if len(keys) != 1:
+                        break
+                    s = e
+                    e = keys[0]
+                    if e in segment_cuts:
+                        break
+
+
+                segments[(item_start, item_end)] = (d, r)
+            return segments[(item_start, item_end)]
+
+
         def _export_queue(new_item=None):
             def name(i):
                 return '{0}-{1:.3f}'.format(len(i['not_visited_zones']), i['heuristic_cost'])
-            export_queue(self.router, _queue, tag_length="cost", tag_name=name, new_item=None)
+            export_queue(self.router, _queue, tag_length="cost", tag_name=name, new_item=new_item)
 
         def _queue_insert(queue_item):
             nonlocal _queue
@@ -776,65 +808,136 @@ class RouteServer(object):
                         return None, None
                     d += distance(self.router.rnodes[s], e_latlon)
                     r += (e,)
+                    if e in segment_cuts:
+                        break
                     keys = list(filter(lambda k: k != s, self.router.routing[e].keys()))
                     if len(keys) != 1:
                         break
                     s = e
                     e = keys[0]
-                    if e in segment_cuts:
-                        break
 
                 segments[(item_start, item_end)] = (d, r)
             return segments[(item_start, item_end)]
 
-        _segments_links = {}
-        _segments_links_rev = {}
+        def find_links():
+            def export_links():
+                def write_item(hf, q, l):
+                    route = (l,) + q[2]
+                    hf.write(" { \n")
+                    hf.write("  'name':'{0}-{1}',\n".format(route[0], route[-1]))
+                    hf.write("  'length':{},\n".format(q[1]))
+                    hf.write("  'route':[\n")
+                    for lat, lon in list(map(self.router.node_lat_lon, route)):
+                        hf.write("[{},{}],\n".format(lat, lon))
+                    hf.write("  ],\n")
+                    hf.write("  },\n")
 
-        def construct_segments():
-            _queue_nodes = [start]
-            _complete_nodes = []
-            while _queue_nodes:
-                node = _queue_nodes.pop()
-                if node not in _segments_links:
-                    _segments_links[node] = {}
-                for next_node in list(self.router.routing[node]):
-                    s_length, s_nodes = find_segment(node, next_node)
-                    if s_nodes:
-                        if s_nodes[-1] in _segments_links[node]:
-                            # if link already exist (a 2nd route for the same point)
-                            if _segments_links[node][s_nodes[-1]][0] > s_length:
-                                # if previous is longest, keep it
-                                continue
-                        if s_nodes[-1] not in _segments_links:
-                            _segments_links[s_nodes[-1]] = {}
-                        _segments_links[node][s_nodes[-1]] = (s_length, s_nodes, _segments_links[s_nodes[-1]])
-                        if s_nodes[-1] not in _segments_links_rev:
-                            _segments_links_rev[s_nodes[-1]]=[]
-                        _segments_links_rev[s_nodes[-1]].append(node)
-                        if s_nodes[-1] not in _complete_nodes:
-                            _queue_nodes.append(s_nodes[-1])
-                _complete_nodes.append(node)
+                with open('debug/links.js', 'w') as hfile:
+                    hfile.write("var links = [\n")
+                    for l in links:
+                        for r in links[l]:
+                            write_item(hfile, r, l)
+                    hfile.write("];\n")
 
-            print(len(_segments_links), sum([len(l) for l in _segments_links.values()]))
+            links = {}
+            links_r = {}
+            _nodes = [start]
+            while _nodes:
+                node = _nodes.pop()
+                links[node] = []
+                for next_node in self.router.routing[node]:
+                    segment = find_segment(node, next_node)
+                    if segment[0] is None:
+                        continue
+                    last_node = segment[1][-1]
+                    if last_node == node:
+                        continue
+                    segment = (last_node,) + segment
+                    links[node].append(segment)
+                    if last_node not in links:
+                        _nodes.append(last_node)
+                    if last_node not in links_r:
+                        links_r[last_node] = set([])
+                    links_r[last_node].add(node)
+            print(len(links), sum([len(i) for i in links.values()]))
+            # Remove dead end
+            find = True
+            while find:
+                find = False
+                # merge
+                export_links()
+                for node in list(links.keys()):
+                    if node is start:
+                        continue
+                    if len(links[node]) == 2 and len(links_r[node]) == 2:
+                        # assume segments are reversible (no single way)
+                        l1 = links[node][0][0]
+                        l2 = links[node][1][0]
+                        for l in range(len(links[l1])):
+                            if links[l1][l][0] == node:
+                                link1 = links[l1].pop(l)
+                                break
+                        for l in range(len(links[l2])):
+                            if links[l2][l][0] == node:
+                                link2 = links[l2].pop(l)
+                                break
+                        links_r[l1].remove(node)
+                        links_r[l2].remove(node)
+                        if l1 == l2:
+                            print("Remove loop ", node)
+                        else:
+                            nodes1 = link1[2] + links[node][1][2]
+                            dista1 = link1[1] + links[node][1][1]
+                            nodes2 = link2[2] + links[node][0][2]
+                            dista2 = link2[1] + links[node][0][1]
+                            links[l1].append([l2, dista1, nodes1])
+                            links[l2].append([l1, dista2, nodes2])
+                            links_r[l1].add(l2)
+                            links_r[l2].add(l1)
+                            print("Merge to skip ", node)
+                        links.pop(node)
+                        links_r.pop(node)
+                        find = True
 
-            # remove impasse
-            find_impasse = True
-            while find_impasse:
-                find_impasse = False
-                for from_node, v in list(_segments_links.items()):
-                    if len(v) == 1 and len(_segments_links_rev[from_node])==1:
-                        to_node = list(v.keys())[0]
-                        if from_node in _segments_links[to_node]:
-                            print("find impasse")
-                            find_impasse = True
-                            # remove node
-                            _segments_links[to_node].pop(from_node)
-                            _segments_links.pop(from_node)
-                if find_impasse:
-                    print("retry")
-            print(len(_segments_links), sum([len(l) for l in _segments_links.values()]))
+                # Remove multiple routes
+                for node in links:
+                    for to_node in set([l[0] for l in links[node]]):
+                        li = list(filter(lambda l: l[0] == to_node, links[node]))
+                        if len(li) > 1:
+                            print("Find multiple route for ", node, to_node)
+                            ml = max([l[1] for l in li])
+                            links[node] = list(filter(lambda l: l[0] != to_node or l[1] >= ml, links[node]))
+                            find = True
 
-        construct_segments()
+                # # Simplify small triangle
+                # for node1 in links:
+                #     for link1 in links[node1]:
+                #         node2 = link1[0]
+                #         for link2 in links[node2]:
+                #             node3 = link2[0]
+                #             for link3 in links[node3]:
+                #                 if link3[0] == node1:
+                #                     if link1[1] + link2[1] + link3[1] < 0.060:
+                #                         print("Find triangle", node1, node2, node3)
+
+                for node in list(links.keys()):
+                    if len(set([l[2] for l in links[node]])) == 1:
+                        to_node = links[node][0][0]
+                        if to_node in links_r[node]:
+                            for i in range(len(links[to_node]) - 1, -1, -1):
+                                if links[to_node][i][0] == node:
+                                    links[to_node].pop(i)
+                            print("remove node ", node, to_node)
+                            links.pop(node)
+                            links_r[to_node].remove(node)
+                            links_r.pop(node)
+                            find = True
+            print(len(links), sum([len(i) for i in links.values()]))
+            export_links()
+            return links
+
+        links = find_links()
+
         radius_center_point = start
 
         _hct = {}
@@ -862,20 +965,14 @@ class RouteServer(object):
                     _loc_queue.append(queue_item)
 
             # Define function that addes to the queue
-            def _loc_add_to_queue(item_start, item_end, queue_so_far):
+            def _loc_add_to_queue(item_end, queue_so_far):
                 """Add another potential route to the queue"""
                 nonlocal _closed, _loc_queue, _loc_closeNode
 
-                # Do not turn around at a node (don't do this: a-b-a)
-                # if len(queueSoFar["nodes"].split(",")) >= 2 and queueSoFar["nodes"].split(",")[-2] == str(end):
-                #    return
-
-                segment_distance, segment_nodes, segment_link = _segments_links[item_start][item_end]
+                last_node, segment_distance, segment_nodes = item_end
 
                 total_cost = queue_so_far["cost"] + segment_distance
 
-                # t = time.time() if len(min_dists)==0 else None
-                last_node = segment_nodes[-1]
                 if last_node not in _hct:
                     _hct[last_node] = distance(self.router.rnodes[last_node], self.router.rnodes[radius_center_point])
                 hc = _hct[last_node]
@@ -887,7 +984,6 @@ class RouteServer(object):
                     "cost": total_cost,
                     "heuristic_cost": total_cost + hc,
                     "nodes": queue_so_far["nodes"] + segment_nodes,
-                    "segment_link": segment_link
                 }
 
                 _loc_queue_insert(queue_item)
@@ -896,9 +992,9 @@ class RouteServer(object):
             if start == radius_center_point:
                 return {"cost": 0, "nodes": (start,)}
             else:
-                for linkedNode in _segments_links[start]:
-                    if linkedNode not in forbidden_nodes:
-                        _loc_add_to_queue(start, linkedNode, {"cost": 0, "nodes": (start,)})
+                for linkedNode in links[start]:
+                    if linkedNode[0] not in forbidden_nodes:
+                        _loc_add_to_queue(linkedNode, {"cost": 0, "nodes": (start,)})
 
             # Limit for how long it will search
             while _loc_queue and not self._exit:
@@ -911,9 +1007,9 @@ class RouteServer(object):
                 if considered_node == radius_center_point:
                     return next_item
                 # If no, add all possible nodes from x to queue
-                for next_node in next_item["segment_link"]:
-                    if next_node not in _closed and next_node not in forbidden_nodes:
-                        _loc_add_to_queue(considered_node, next_node, next_item)
+                for next_node in links[considered_node]:
+                    if next_node[0] not in _closed and next_node[0] not in forbidden_nodes:
+                        _loc_add_to_queue(next_node, next_item)
             else:
                 return False
 
@@ -931,24 +1027,22 @@ class RouteServer(object):
                 _queue.append(queue_item)
 
         # Define function that adds to the queue
-        def _add_to_queue(item_start, item_end, queue_so_far):
+        def _add_to_queue(item_end, queue_so_far):
             """Add another potential route to the queue"""
-            segment_distance, segment_nodes, segment_link = _segments_links[item_start][item_end]
+            last_node, segment_distance, segment_nodes = item_end
 
             total_cost = queue_so_far["cost"] + segment_distance
-            all_nodes = queue_so_far["nodes"] + segment_nodes
 
-            route_to_close = if_route_exists(segment_nodes[-1],
+            route_to_close = if_route_exists(last_node,
                                              config['target_dist'] + config['target_threshold'] - total_cost,
                                              queue_so_far["link_nodes"])
             if route_to_close:
                 # Create a hash for all the route's attributes
                 queue_item = {
                     "cost": total_cost,
-                    "nodes": all_nodes,
-                    "link_nodes": queue_so_far["link_nodes"]+(item_end,),
+                    "nodes": queue_so_far["nodes"] + segment_nodes,
+                    "link_nodes": queue_so_far["link_nodes"]+(last_node,),
                     "hcost" : total_cost + route_to_close['cost'],
-                    "segment_link": segment_link
                 }
                 _queue_insert(queue_item)
                 return queue_item
@@ -959,11 +1053,11 @@ class RouteServer(object):
         if start not in self.router.routing:
             raise KeyError("node {} doesn't exist in the graph".format(start))
 
-        if len(_segments_links)==1:
+        if len(links)==1:
             return "gave_up", []
 
-        for next_node in _segments_links[start]:
-            _add_to_queue(start, next_node, {'nodes':(start, ), 'cost':0, "link_nodes":()})
+        for next_node in links[start]:
+            _add_to_queue(next_node, {'nodes':(start, ), 'cost':0, "link_nodes":()})
 
         count = 0
         while _queue and not self._exit:
@@ -975,7 +1069,7 @@ class RouteServer(object):
             # Pop first item from queue for routing. If queue it's empty - it means no route exists
             next_item = _queue.pop(0)
 
-            considered_node = next_item["nodes"][-1]
+            considered_node = next_item["link_nodes"][-1]
 
             # Found the end node - success
             if considered_node == start:
@@ -993,9 +1087,9 @@ class RouteServer(object):
                 continue
 
             # If no, add all possible nodes from x to queue
-            for next_node in next_item["segment_link"]:
-                if next_node not in next_item['link_nodes']:
-                    _add_to_queue(considered_node, next_node, next_item)
+            for next_node in links[considered_node]:
+                if next_node[0] not in next_item['link_nodes']:
+                    _add_to_queue(next_node, next_item)
 
         if _longest_route:
             print(count)
@@ -1014,20 +1108,36 @@ class RouteServer(object):
 if __name__ == '__main__':
     # import time
     # tiles_to_kml(['8251_5613', '8251_5614', '8249_5615'], "debug/test.kml", "test")
-    rs = RouteServer()
     # print(computeMissingKml(open("missing_tiles.kml", "rb")))
 
-    start_time = time.time()
-    pprint(rs.start_route('trail', [49.213139772606155,1.3080430607664086],
-                        [49.213139772606155,1.3080430607664086],
-                        [], config={'route_mode':'isochrone-dist', 'radius':1.0, 'target_dist':15.0, 'target_threshold':0.2,
-                                               'turnaround_cost':1.5}, thread=False)[1].route) # MUMU
-    compute_time = time.time()-start_time
-    print("compute time:", compute_time)
-
+    rs = RouteServer()
+    durations = []
+    for i in range(0,1):
+        start_time = time.time()
+        rs.start_route('trail', [49.16091, 1.33688],
+                              [49.16091, 1.33688],
+                              [], config={'route_mode': 'isochrone-dist', 'radius': 0.5, 'target_dist': 100.0,
+                                          'target_threshold': 0.4,
+                                          'turnaround_cost': 1.5}, thread=False)  # GAILLON
+        compute_time = time.time()-start_time
+        rs.generate_gpx('debug/debug.gpx', 'isochrone')
+        durations.append(compute_time)
+        print("compute time:", compute_time)
+    print("avg: {:.02f} |".format(sum(durations)/len(durations)), ', '.join(["{:.02f}".format(d) for d in durations]))
+    # MUMU 1km
+    # PC Boulot :                 2.52, 1.93, 1.99, 2.05, 2.07, 2.00, 2.05, 2.06, 2.03, 2.03
+    #    16/11 10:00  avg: 0.89 | 1.34, 0.82, 0.80, 0.83, 0.83, 0.90, 0.82, 0.85, 0.84, 0.84
+    # MBA'17    :
+    # MBP'M1    :
 
     exit()
-    pprint(rs.start_route('footroad', [49.16091,1.33688],
+    rs.start_route('trail', [49.213139772606155, 1.3080430607664086],
+                   [49.213139772606155, 1.3080430607664086],
+                   [],
+                   config={'route_mode': 'isochrone-dist', 'radius': 1.5, 'target_dist': 100.0,
+                           'target_threshold': 0.2,
+                           'turnaround_cost': 1.5}, thread=False)[1].route  # MUMU
+    pprint(rs.start_route('roadcycle', [49.16091,1.33688],
                         [49.16091,1.33688],
                         [], config={'route_mode':'isochrone-dist', 'radius':0.3, 'target_dist':5.0, 'target_threshold':0.2,
                                                'turnaround_cost':1.5}, thread=False)[1]) #GAILLON
