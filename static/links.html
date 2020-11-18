@@ -106,13 +106,13 @@
           }
       });
       routeLi.on("mouseover", function(e) {
-          id = (parseInt(this.id.substring(3, 5)))
+          id = parseInt(this.id.substring(3, 15))
           dictLiPoly[id].setStyle({opacity:1.0, color:'#FFFF00'}).bringToFront();
           dictLiCircle[id].setStyle({opacity:1.0, radius:10}).bringToFront();
           $(this).addClass('highlight');
       });
       routeLi.on("mouseout", function(e) {
-          id = (parseInt(this.id.substring(3, 5)))
+          id = parseInt(this.id.substring(3, 15))
           dictLiPoly[id].setStyle({opacity:0.3, color:'#FF8080'});
           dictLiCircle[id].setStyle({opacity:0.5, radius:5});
           $(this).removeClass('highlight');
@@ -121,21 +121,6 @@
     mymap.fitBounds(polyline.getBounds());
       }
     }
-
-    for (i in tiles) {
-        L.polygon(tiles[i], {color: 'lightblue', fillOpacity:0.0}).addTo(mymap);
-    }
-
-    for (i in nodes) {
-        var circle = L.circle(nodes[i], {
-            color: 'blue',
-            fillColor: 'blue',
-            fillOpacity: 1,
-            radius: 7
-        }).addTo(mymap);
-    }
-
-
 
 
 
