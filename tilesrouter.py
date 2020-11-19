@@ -224,6 +224,9 @@ class RouteServer(object):
         # Parameter for background task
         self.run_data = {}
 
+    def dist(self, a,b):
+        return distance(self.router.rnodes[a], self.router.rnodes[b])
+
     def start_route(self, mode, start_loc, end_loc, tiles, config={}, thread=True):
         print(tiles)
 
@@ -782,54 +785,43 @@ class RouteServer(object):
         def _export_queue(new_item=None):
             export_queue(self.router, _queue, tag_length="cost", tag_name="hcost", new_item=new_item)
 
-        def dist(a,b):
-            return distance(self.router.rnodes[a], self.router.rnodes[b])
+        def dist(a,b): return self.dist(a, b)
 
-        # Load area of the circle
+        # Load area of the circle to be sure to have all routes
         start_latlon = self.router.rnodes[start]
         dlat = dichotomie(lambda x: config["radius"] - distance(start_latlon, (start_latlon[0]+x, start_latlon[1])))
         dlon = dichotomie(lambda x: config["radius"] - distance(start_latlon, (start_latlon[0], start_latlon[1]+x)))
         self.router.get_area_rect(start_latlon[0]-dlat, start_latlon[1]-dlon, start_latlon[0]+dlat, start_latlon[1]+dlon)
 
-        segments = {}
-        segment_cuts = [start]
-
         def find_segment(item_start, item_end):
-            nonlocal segments
+            s = item_start
+            e = item_end
+            d = 0
+            r = ()
+            while True:
+                e_latlon = self.router.rnodes[e]
+                dist = distance(start_latlon, e_latlon)
+                if dist > config["radius"]:
+                    return None, None
+                d += distance(self.router.rnodes[s], e_latlon)
+                r += (e,)
+                if e is start:
+                    break
+                keys = list(filter(lambda k: k != s, self.router.routing[e].keys()))
+                if len(keys) != 1:
+                    break
+                s = e
+                e = keys[0]
 
-            if (item_start, item_end) not in segments:
-                s = item_start
-                e = item_end
-                d = 0
-                r = ()
-                while True:
-                    e_latlon = self.router.rnodes[e]
-                    dist = distance(start_latlon, e_latlon)
-                    if dist > config["radius"]:
-                        segments[(item_start, item_end)] = (None, None)
-                        return None, None
-                    d += distance(self.router.rnodes[s], e_latlon)
-                    r += (e,)
-                    if e in segment_cuts:
-                        break
-                    keys = list(filter(lambda k: k != s, self.router.routing[e].keys()))
-                    if len(keys) != 1:
-                        break
-                    s = e
-                    e = keys[0]
+            return d, r
 
-                segments[(item_start, item_end)] = (d, r)
-            return segments[(item_start, item_end)]
-
-        next_id = 1
-
-        def limit_links(links, nodes):
+        def limit_links(loc_links, nodes):
             lks = {}
             external_route_count = 0
             boundaries_nodes = set()
             for n in nodes:
                 lks[n] = []
-                for l in links[n]:
+                for l in loc_links[n]:
                     if l[0] in nodes:
                         lks[n].append(l)
                     else:
@@ -837,7 +829,7 @@ class RouteServer(object):
                         boundaries_nodes.add(n)
             return lks, external_route_count, boundaries_nodes
 
-        def find_longest_route(start, stop, links):
+        def find_longest_route(start, stop, loc_links):
             """Do the routing"""
             _loc_queue = []
 
@@ -867,15 +859,15 @@ class RouteServer(object):
                     "cost": total_cost,
                     "nodes": queue_so_far["nodes"] + segment_nodes,
                     "node" : last_node,
-                    "link_nodes": queue_so_far["link_nodes"]+(last_node, )
+                    "link_nodes": queue_so_far["link_nodes"] | segment_link_nodes
                 }
                 _loc_queue_insert(queue_item)
 
             if start == stop:
-                return {"cost": 0, "nodes": (start,), 'link_nodes':(start,)}
+                return {"cost": 0, "nodes": (start,), 'link_nodes':set([start])}
             else:
-                for linkedNode in links[start]:
-                    _loc_add_to_queue(linkedNode, {'cost': 0, 'nodes': (start,), 'link_nodes': (start,)})
+                for linkedNode in loc_links[start]:
+                    _loc_add_to_queue(linkedNode, {'cost': 0, 'nodes': (start,), 'link_nodes': set([start])})
 
             # Limit for how long it will search
             longest = None
@@ -887,9 +879,10 @@ class RouteServer(object):
                     if longest is None or next_item['cost']>longest['cost']:
                         longest = next_item
                     continue
-                for next_node in links[considered_node]:
+                for next_node in loc_links[considered_node]:
                     if next_node[0] not in next_item['link_nodes']:
                         _loc_add_to_queue(next_node, next_item)
+            longest['link_nodes'].remove(start)
             return longest
 
         def export_links(links):
@@ -912,7 +905,6 @@ class RouteServer(object):
                 hfile.write("];\n")
 
         def find_links():
-            nonlocal  next_id
             links = {}
             links_r = {}
             _nodes = [start]
@@ -926,7 +918,7 @@ class RouteServer(object):
                     last_node = segment[1][-1]
                     if last_node == node:
                         continue
-                    segment = (last_node, segment[0], segment[1], set())
+                    segment = (last_node, segment[0], segment[1], set([last_node]))
                     links[node].append(segment)
                     if last_node not in links:
                         _nodes.append(last_node)
@@ -964,8 +956,8 @@ class RouteServer(object):
                             dista1 = link1[1] + links[node][1][1]
                             nodes2 = link2[2] + links[node][0][2]
                             dista2 = link2[1] + links[node][0][1]
-                            links[l1].append((l2, dista1, nodes1, set()))
-                            links[l2].append((l1, dista2, nodes2, set()))
+                            links[l1].append((l2, dista1, nodes1, set([l2])))
+                            links[l2].append((l1, dista2, nodes2, set([l1])))
                             links_r[l1].add(l2)
                             links_r[l2].add(l1)
                             print("Merge to skip ", node)
@@ -990,7 +982,7 @@ class RouteServer(object):
                             for i in range(len(links[to_node]) - 1, -1, -1):
                                 if links[to_node][i][0] == node:
                                     links[to_node].pop(i)
-                            print("remove node ", node, to_node)
+                            print("remove no way node ", node, to_node)
                             links.pop(node)
                             links_r[to_node].remove(node)
                             links_r.pop(node)
@@ -1001,29 +993,46 @@ class RouteServer(object):
             return links
 
         links = find_links()
-
         def compute_shortcuts(links):
+            nonlocal cont, rej
             # route shortcuts
             def links_perm_iter(links, count):
                 def recur(nodes):
+                    nonlocal  cont, rej
                     al = sum([links[i] for i in nodes], [])
                     ln = set([n[0] for n in al]) - set(nodes) - set([start])
-                    for n in ln:
+                    lns = sorted(ln, key=lambda n:len([l for l in links[n] if l[0] in nodes]), reverse=True)
+                    for n in lns:
                         #if n <= nodes[-1]:
                         #    continue
                         nn = nodes + [n]
+                        if len(nn)>3:
+                            if len([x for x in sum([links[i] for i in nn], []) if x[0] in nn]) < 0.5+1.19*(len(nn)**1.29):
+                                continue
                         if len(nn) < count:
                             yield from recur(nn)
+                            # for n in nodes:
+                            #     if len(links[n])==0:
+                            #         return
                         else:
                             yield nn
+                            # for n in nodes:
+                            #     if len(links[n])==0:
+                            #         return
+
 
                 nodes = [None]
                 for nodes[0] in links:
+                    for n in nodes:
+                        if len(links[n]) == 0:
+                            continue
                     if nodes[0] is not start:
                         yield from recur(nodes)
 
             shn = set()
             for x in range(config['optim'], 2, -1):
+            #for x in range(4, config['optim']+1):
+                print("Search for optim level ", x)
                 for lp in links_perm_iter(links, x):
                     if shn & set(lp):
                         continue
@@ -1036,7 +1045,8 @@ class RouteServer(object):
                             links[n] = list(filter(lambda l:l[0] not in lp, links[n]))
                         for c in permutations(boundaries_nodes, 2):
                             longest = find_longest_route(c[0], c[1], lks)
-                            links[c[0]].append((c[1], longest['cost'], longest['nodes'], set(longest['link_nodes'][1:-1])))
+                            links[c[0]].append((c[1], longest['cost'], longest['nodes'], longest['link_nodes'] ))
+                export_links(links)
 
             for n in list(links.keys()):
                 if len(links[n])==0:
@@ -1044,7 +1054,6 @@ class RouteServer(object):
             return links
 
         if config['optim']:
-            links_wo_optim = deepcopy(links)
             links = compute_shortcuts(links)
         export_links(links)
         print(len(links), sum([len(i) for i in links.values()]))
@@ -1056,7 +1065,6 @@ class RouteServer(object):
         def if_route_exists(start, max_length, forbidden_nodes):
             """Do the routing"""
             _closed = forbidden_nodes
-            _closed.add(start)
             _loc_queue = []
 
             def _export_queue(new_item=None):
@@ -1076,10 +1084,10 @@ class RouteServer(object):
                     _loc_queue.append(queue_item)
 
             # Define function that addes to the queue
-            def _loc_add_to_queue(item_end, queue_so_far):
+            def _loc_add_to_queue(segment, queue_so_far):
                 """Add another potential route to the queue"""
                 nonlocal _closed
-                last_node, segment_distance, segment_nodes, segment_link_nodes = item_end
+                last_node, segment_distance, segment_nodes, segment_link_nodes = segment
 
                 total_cost = queue_so_far["cost"] + segment_distance
                 if last_node not in _hct:
@@ -1096,14 +1104,13 @@ class RouteServer(object):
                 }
                 _loc_queue_insert(queue_item)
                 _closed.add(last_node)
-                # _closed |= segment_link_nodes
 
             if start == radius_center_point:
                 return {"cost": 0, "nodes": (start,)}
-            else:
-                for linkedNode in links[start]:
-                    if linkedNode[0] not in _closed and not (set(linkedNode[3]) & _closed) :
-                        _loc_add_to_queue(linkedNode, {"cost": 0, "nodes": (start,)})
+
+            for linkedNode in links[start]:
+                if _closed.isdisjoint(linkedNode[3]) :
+                    _loc_add_to_queue(linkedNode, {"cost": 0, "nodes": (start,)})
 
             # Limit for how long it will search
             while _loc_queue and not self._exit:
@@ -1112,9 +1119,9 @@ class RouteServer(object):
                 considered_node = next_item["node"]
                 if considered_node == radius_center_point:
                     return next_item
-                for next_node in links[considered_node]:
-                    if not ( next_node[0] in _closed  or (next_node[3] and (next_node[3] & _closed))):
-                        _loc_add_to_queue(next_node, next_item)
+                for segment in links[considered_node]:
+                    if _closed.isdisjoint(segment[3]):
+                        _loc_add_to_queue(segment, next_item)
             else:
                 return False
 
@@ -1132,9 +1139,9 @@ class RouteServer(object):
                 _queue.append(queue_item)
 
         # Define function that adds to the queue
-        def _add_to_queue(item_end, queue_so_far):
+        def _add_to_queue(segment, queue_so_far):
             """Add another potential route to the queue"""
-            last_node, segment_distance, segment_nodes, segment_link_nodes = item_end
+            last_node, segment_distance, segment_nodes, segment_link_nodes = segment
 
             total_cost = queue_so_far["cost"] + segment_distance
 
@@ -1147,7 +1154,7 @@ class RouteServer(object):
                 queue_item = {
                     "cost": total_cost,
                     "nodes": queue_so_far["nodes"] + segment_nodes,
-                    "link_nodes": queue_so_far["link_nodes"] | segment_link_nodes | set([last_node]),
+                    "link_nodes": queue_so_far["link_nodes"] | segment_link_nodes,
                     "hcost" : total_cost + route_to_close['cost'],
                     "node" : last_node,
                 }
@@ -1167,7 +1174,7 @@ class RouteServer(object):
         count = 0
         while _queue and not self._exit:
             count += 1
-            if count%100000==0:
+            if count%250000==0:
                 print(count, len(_queue))
                 _export_queue(_longest_route)
 
@@ -1192,10 +1199,9 @@ class RouteServer(object):
                 continue
 
             #If no, add all possible nodes from x to queue
-            for next_node in links[considered_node]:
-                if not (next_node[0] in next_item['link_nodes'] or
-                        (next_node[3] and (next_node[3] & next_item['link_nodes']))):
-                    _add_to_queue(next_node, next_item)
+            for segment in links[considered_node]:
+                if next_item['link_nodes'].isdisjoint(segment[3]):
+                    _add_to_queue(segment, next_item)
 
         if _longest_route:
             print(count)
@@ -1222,8 +1228,8 @@ if __name__ == '__main__':
         start_time = time.time()
         rs.start_route('trail', [49.16091, 1.33688],
                        [49.16091, 1.33688],
-                       [], config={'route_mode': 'isochrone-dist', 'radius': 0.3, 'target_dist': 100.0,
-                                   'target_threshold': 0.4, 'optim':7,
+                       [], config={'route_mode': 'isochrone-dist', 'radius': 0.4, 'target_dist': 100.0,
+                                   'target_threshold': 0.4, 'optim':9,
                                    'turnaround_cost': 1.5}, thread=False)  # GAILLON
         compute_time = time.time()-start_time
         rs.generate_gpx('debug/debug.gpx', 'isochrone')
@@ -1231,7 +1237,10 @@ if __name__ == '__main__':
         print("compute time:", compute_time)
     print("avg: {:.02f} |".format(sum(durations)/len(durations)), ', '.join(["{:.02f}".format(d) for d in durations]))
 
-    # MUMU 1km
+    #length: 3.196987669233947
+    #avg: 9.68 | 10.05, 9.47, 9.38, 10.15, 9.58, 9.68, 9.68, 9.64, 9.58, 9.61
+
+# MUMU 1km
     # PC Boulot :                 2.52, 1.93, 1.99, 2.05, 2.07, 2.00, 2.05, 2.06, 2.03, 2.03
     #    16/11 10:00  avg: 0.89 | 1.34, 0.82, 0.80, 0.83, 0.83, 0.90, 0.82, 0.85, 0.84, 0.84
     #          16:00  avg: 0.84 | 1.18, 0.79, 0.87, 0.78, 0.77, 0.80, 0.81, 0.77, 0.80, 0.83
@@ -1246,20 +1255,28 @@ if __name__ == '__main__':
     # MBP'M1    :
     # Optim 0 : 47/144
 
-    # GAILLON 0.26 opt 0 2.750km: 37.90s (44/122 => 2753838)
-    # GAILLON 0.26 opt 3 2.750km:  1.62s (40/122 =>   78153)
-    # GAILLON 0.26 opt 5 2.750km:  1.20s (36/110 =>   51145)
-    # GAILLON 0.26 opt 6 2.750km:  1.31s (34/102 =>   35969)
-    # GAILLON 0.26 opt 7 2.750km:  2.86s (33/100 =>   35038)
+    # GAILLON 0.26 opt 0 2.750km: 30.29s (44/122 => 2753838)
+    # GAILLON 0.26 opt 3 2.750km:  1.62s (40/122 =>   63167)
+    # GAILLON 0.26 opt 5 2.750km:  0.94s (36/110 =>   40323)
+    # GAILLON 0.26 opt 6 2.750km:  1.10s (34/102 =>   28363)
+    # GAILLON 0.26 opt 7 2.750km:  2.71s (33/100 =>   27676)
 
     # GAILLON 0.27 opt 0 2.830071101913692km: 36.49s (40/122 => 2753838)
     # GAILLON 0.27 opt 7 2.830071101913692km:  2.81s (33/100 =>   35038)
 
     # GAILLON 0.3 opt 0 3.196km:    149.46s (47/144 => 28219608)
-    # GAILLON 0.3 opt 3 3.196987km:  16.80s (47/144 =>  1126167)
-    # GAILLON 0.3 opt 7 3.167km:      3.43s (38/116 =>    27463)
+    # GAILLON 0.3 opt 3 3.196km:  16.80s (47/144 =>  1126167)
+    # GAILLON 0.3 opt 7 3.196km:   3.15s (38/116 =>    27463)
+    # GAILLON 0.32 opt 7 3.29km:   6.61s (44/134 =>   193826)
+    # GAILLON 0.33 opt 7 3.45km:  24.17s (51/156 =>  1488351)
+    # GAILLON 0.34 opt 7 4.16km:  66.84s (57/174 =>  4629232) 1x5 + 6x3
+    # GAILLON 0.34 opt 12 4.16km:  46.03 (50/152 =>   521847) 1x12 + 6x3
+    # GAILLON 0.34 opt 12 4.16km:  16.86  (44/134 =>   81983) 1x12  1x9 + 5x3
+    # GAILLON 0.38 opt 7 4.73km:  334.8s (61/186 => 23355940) 1x5 + 6x3       /!\ prev
+    # GAILLON 0.38 opt 9 4.73km:  61.01s (55/168 =>  3883343) 1x9 + 1x5 + 5x3  2,5K-2
 
-    # GAILLON 0.35 opt 7 4.16km: 18/11/2020 11:06 = 149.46s (61/180 => 4882262)
+    # GAILLON 0.50 opt 9 5.20km: 4093s (66/202 => 293069242) 1x5 + 5x3
+
 
 
     exit()
