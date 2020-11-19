@@ -993,59 +993,108 @@ class RouteServer(object):
             return links
 
         links = find_links()
+
+        def nodes_azimuth(n1, n2):
+            return azimuth(self.router.rnodes[n1], self.router.rnodes[n2])
+
+        def find_rings(links):
+            rings = []
+
+            def ring_for_nodes(nodes):
+                pass
+
+            def find_ring_next_node(nodes):
+                az = nodes_azimuth(nodes[-2], nodes[-1])
+                min_angle = 360
+                next_node = None
+                for l in links[nodes[-1]]:
+                    if l[0]==nodes[-2]:
+                        continue
+                    azl = nodes_azimuth(nodes[-1], l[0])
+                    angle = (180 + az - azl) % 360
+                    if angle < min_angle:
+                        min_angle = angle
+                        next_node = l[0]
+                return next_node
+
+
+            for n1 in links:
+                for l1 in links[n1]:
+                    n2 = l1[0]
+                    nodes = [n1, n2]
+                    while True:
+                        nn = find_ring_next_node(nodes)
+                        if nn == nodes[0]:
+                            ring_str = ','.join([str(n) for n in nodes])
+                            for r in rings:
+                                if ring_str in r+','+r:
+                                    break
+                            else:
+                                rings.append(ring_str)
+                            break
+                        nodes.append(nn)
+
+            for i in range(len(rings)):
+                rings[i] = set([int(n) for n in rings[i].split((','))])
+            return rings
+
+        rings = find_rings(links)
+        rings = list(filter(lambda n:start not in n, rings))
+        rings_contacts = []
+        for i in range(len(rings)):
+            rings_contacts.append(set())
+            for j in range(len(rings)):
+                if i==j: continue
+                if len(rings[i] & rings[j])>1:
+                    rings_contacts[i].add(j)
+
+        def rings_perm_iter(rings, count):
+            def recur(rr, contacts, nodes):
+                for r in contacts:
+                    if len(rr)+1 < count:
+                        rrr = rr | set([r])
+                        yield from recur(rrr, (contacts | rings_contacts[r]) - rrr, nodes | rings[r])
+                    else:
+                        yield nodes | rings[r]
+
+            for r in range(len(rings)):
+                if count==1:
+                    yield set(rings[r])
+                else:
+                    yield from recur(set([r]), rings_contacts[r] , set(rings[r]))
+
         def compute_shortcuts(links):
-            nonlocal cont, rej
             # route shortcuts
-            def links_perm_iter(links, count):
-                def recur(nodes):
-                    nonlocal  cont, rej
-                    al = sum([links[i] for i in nodes], [])
-                    ln = set([n[0] for n in al]) - set(nodes) - set([start])
-                    lns = sorted(ln, key=lambda n:len([l for l in links[n] if l[0] in nodes]), reverse=True)
-                    for n in lns:
-                        #if n <= nodes[-1]:
-                        #    continue
-                        nn = nodes + [n]
-                        if len(nn)>3:
-                            if len([x for x in sum([links[i] for i in nn], []) if x[0] in nn]) < 0.5+1.19*(len(nn)**1.29):
-                                continue
-                        if len(nn) < count:
-                            yield from recur(nn)
-                            # for n in nodes:
-                            #     if len(links[n])==0:
-                            #         return
-                        else:
-                            yield nn
-                            # for n in nodes:
-                            #     if len(links[n])==0:
-                            #         return
-
-
-                nodes = [None]
-                for nodes[0] in links:
-                    for n in nodes:
-                        if len(links[n]) == 0:
-                            continue
-                    if nodes[0] is not start:
-                        yield from recur(nodes)
-
             shn = set()
-            for x in range(config['optim'], 2, -1):
-            #for x in range(4, config['optim']+1):
+            for x in range(config['optim'], 0, -1):
                 print("Search for optim level ", x)
-                for lp in links_perm_iter(links, x):
-                    if shn & set(lp):
+                # for p in combinations(rings, x):
+                    # p = deepcopy(p)
+                    # while len(p)>1:
+                    #     for r in p[:-1]:
+                    #         if len(r & p[-1])>1:
+                    #             r |= p[-1]
+                    #             p = p[:-1]
+                    #             break
+                    #     else:
+                    #         break
+                    # if len(p)>1:
+                    #     continue
+                    # lp = p[0]
+                for lp in rings_perm_iter(rings, x):
+                    if (shn & lp) or (start in lp):
                         continue
                     lks, external_route_count, boundaries_nodes = limit_links(links, lp)
                     if external_route_count <= 3:
                         print(lp, external_route_count)
-                        shn |= set(lp)
+                        shn |= lp ^ boundaries_nodes
                         # Remove internal links
                         for n in lp:
-                            links[n] = list(filter(lambda l:l[0] not in lp, links[n]))
+                            links[n] = list(filter(lambda l: l[0] not in lp, links[n]))
                         for c in permutations(boundaries_nodes, 2):
                             longest = find_longest_route(c[0], c[1], lks)
-                            links[c[0]].append((c[1], longest['cost'], longest['nodes'], longest['link_nodes'] ))
+                            links[c[0]].append((c[1], longest['cost'], longest['nodes'], longest['link_nodes']))
+
                 export_links(links)
 
             for n in list(links.keys()):
@@ -1056,6 +1105,7 @@ class RouteServer(object):
         if config['optim']:
             links = compute_shortcuts(links)
         export_links(links)
+
         print(len(links), sum([len(i) for i in links.values()]))
 
         radius_center_point = start
@@ -1228,8 +1278,8 @@ if __name__ == '__main__':
         start_time = time.time()
         rs.start_route('trail', [49.16091, 1.33688],
                        [49.16091, 1.33688],
-                       [], config={'route_mode': 'isochrone-dist', 'radius': 0.4, 'target_dist': 100.0,
-                                   'target_threshold': 0.4, 'optim':9,
+                       [], config={'route_mode': 'isochrone-dist', 'radius': 0.45, 'target_dist': 100.0,
+                                   'target_threshold': 0.4, 'optim':6,
                                    'turnaround_cost': 1.5}, thread=False)  # GAILLON
         compute_time = time.time()-start_time
         rs.generate_gpx('debug/debug.gpx', 'isochrone')
@@ -1267,15 +1317,24 @@ if __name__ == '__main__':
     # GAILLON 0.3 opt 0 3.196km:    149.46s (47/144 => 28219608)
     # GAILLON 0.3 opt 3 3.196km:  16.80s (47/144 =>  1126167)
     # GAILLON 0.3 opt 7 3.196km:   3.15s (38/116 =>    27463)
+    # GAILLON 0.3 ring5 3.196km:   2.03s (34/102 =>    46272)
     # GAILLON 0.32 opt 7 3.29km:   6.61s (44/134 =>   193826)
     # GAILLON 0.33 opt 7 3.45km:  24.17s (51/156 =>  1488351)
     # GAILLON 0.34 opt 7 4.16km:  66.84s (57/174 =>  4629232) 1x5 + 6x3
-    # GAILLON 0.34 opt 12 4.16km:  46.03 (50/152 =>   521847) 1x12 + 6x3
-    # GAILLON 0.34 opt 12 4.16km:  16.86  (44/134 =>   81983) 1x12  1x9 + 5x3
+    # GAILLON 0.34 opt 12 4.16km: 46.03s (50/152 =>   521847) 1x12 + 6x3
+    # GAILLON 0.34 ring5 4.16km:   5.66s (36/110 =>    40672) 1x20 + 1x9 + 3x3
+    # GAILLON 0.34 opt 12 4.16km: 16.86s  (44/134 =>   81983) 1x12  1x9 + 5x3
     # GAILLON 0.38 opt 7 4.73km:  334.8s (61/186 => 23355940) 1x5 + 6x3       /!\ prev
     # GAILLON 0.38 opt 9 4.73km:  61.01s (55/168 =>  3883343) 1x9 + 1x5 + 5x3  2,5K-2
+    # GAILLON 0.38 ring5 4.73km:   7.34s (42/128 =>   140345) 1x18 + 1x9 + 4x3  2,5K-2
 
-    # GAILLON 0.50 opt 9 5.20km: 4093s (66/202 => 293069242) 1x5 + 5x3
+    # GAILLON 0.40 opt 9       5.20km:  4093s (66/202 => 293069242) 1x5 + 5x3
+    # GAILLON 0.40 opt 5 rings 5.20km: 147.4s (53/162 =>  18912637) 1x18 + 4x3
+    # GAILLON 0.40 ring5       5.20km: 149.8s (53/162 =>  10255519) 1x18 + 4x3
+
+    # GAILLON 0.45 ring5       km:  (72/218 =>  ) 1x7 + 1x5 + 1x4 + 6x3
+
+
 
 
 

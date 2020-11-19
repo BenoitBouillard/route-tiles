@@ -126,7 +126,7 @@ TYPES = {
     "reverse_way":True},
     "trail": {
         "mode": "foot",
-        "weights": {"trunk": 0.1, "primary": 0.3, "secondary": 0.6, "tertiary": 0.7,
+        "weights": {"trunk": 0.1, "primary": 0.0, "secondary": 0.6, "tertiary": 0.7,
                     "unclassified": 0.7, "residential": 0.8, "living_street": 0.8, "track": 0.9, "service": 0.8,
                     "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1},
         "access": ["access", "foot"],

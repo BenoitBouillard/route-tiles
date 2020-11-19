@@ -15,6 +15,9 @@ def distance(n1, n2):
     return math.asin(math.sqrt(d)) * 12742
 
 
+def azimuth(p1, p2):
+    return math.degrees(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
+
 # Print iterations progress
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', print_end="\r"):
     """
