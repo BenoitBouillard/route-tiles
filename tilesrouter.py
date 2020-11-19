@@ -1017,7 +1017,8 @@ class RouteServer(object):
                         next_node = l[0]
                 return next_node
 
-
+            max_ring_length = 0
+            max_ring_index = None
             for n1 in links:
                 for l1 in links[n1]:
                     n2 = l1[0]
@@ -1030,10 +1031,14 @@ class RouteServer(object):
                                 if ring_str in r+','+r:
                                     break
                             else:
+                                if len(nodes)>max_ring_length:
+                                    max_ring_length = len(nodes)
+                                    max_ring_index = len(rings)
                                 rings.append(ring_str)
                             break
                         nodes.append(nn)
-
+            # Remove external ring
+            rings.pop(max_ring_index)
             for i in range(len(rings)):
                 rings[i] = set([int(n) for n in rings[i].split((','))])
             return rings
@@ -1048,40 +1053,31 @@ class RouteServer(object):
                 if len(rings[i] & rings[j])>1:
                     rings_contacts[i].add(j)
 
-        def rings_perm_iter(rings, count):
-            def recur(rr, contacts, nodes):
-                for r in contacts:
-                    if len(rr)+1 < count:
-                        rrr = rr | set([r])
-                        yield from recur(rrr, (contacts | rings_contacts[r]) - rrr, nodes | rings[r])
-                    else:
-                        yield nodes | rings[r]
+        clusters = [[]]
+        for r in range(len(rings)):
+            clusters[0].append(set([r]))
 
-            for r in range(len(rings)):
-                if count==1:
-                    yield set(rings[r])
-                else:
-                    yield from recur(set([r]), rings_contacts[r] , set(rings[r]))
+        for x in range(config['optim']):
+            clusters.append([])
+            for cluster in clusters[x]:
+                contacts = set()
+                for r in cluster:
+                    contacts |= rings_contacts[r]
+                contacts -= cluster
+                for r in contacts:
+                    new_cluster = cluster | set([r])
+                    if new_cluster not in clusters[x+1]:
+                        clusters[x+1].append(new_cluster)
 
         def compute_shortcuts(links):
             # route shortcuts
             shn = set()
             for x in range(config['optim'], 0, -1):
                 print("Search for optim level ", x)
-                # for p in combinations(rings, x):
-                    # p = deepcopy(p)
-                    # while len(p)>1:
-                    #     for r in p[:-1]:
-                    #         if len(r & p[-1])>1:
-                    #             r |= p[-1]
-                    #             p = p[:-1]
-                    #             break
-                    #     else:
-                    #         break
-                    # if len(p)>1:
-                    #     continue
-                    # lp = p[0]
-                for lp in rings_perm_iter(rings, x):
+                for cluster in clusters[x]:
+                    lp = set()
+                    for r in cluster:
+                        lp |= rings[r]
                     if (shn & lp) or (start in lp):
                         continue
                     lks, external_route_count, boundaries_nodes = limit_links(links, lp)
@@ -1326,7 +1322,7 @@ if __name__ == '__main__':
     # GAILLON 0.34 opt 12 4.16km: 16.86s  (44/134 =>   81983) 1x12  1x9 + 5x3
     # GAILLON 0.38 opt 7 4.73km:  334.8s (61/186 => 23355940) 1x5 + 6x3       /!\ prev
     # GAILLON 0.38 opt 9 4.73km:  61.01s (55/168 =>  3883343) 1x9 + 1x5 + 5x3  2,5K-2
-    # GAILLON 0.38 ring5 4.73km:   7.34s (42/128 =>   140345) 1x18 + 1x9 + 4x3  2,5K-2
+    # GAILLON 0.38 ring5 4.73km:  25.57s (42/128 =>  1751331) 1x18 + 1x9 + 4x3
 
     # GAILLON 0.40 opt 9       5.20km:  4093s (66/202 => 293069242) 1x5 + 5x3
     # GAILLON 0.40 opt 5 rings 5.20km: 147.4s (53/162 =>  18912637) 1x18 + 4x3
