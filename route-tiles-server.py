@@ -345,7 +345,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             self.sessionId = generate_random(8)
             session_object = SessionElement()
             sessionDict[self.sessionId] = session_object
-            session_object.refresh()
+        session_object.refresh()
         check_sessions()
         return session_object
 
