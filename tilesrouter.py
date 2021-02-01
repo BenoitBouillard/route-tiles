@@ -12,13 +12,14 @@ from shapely.geometry import Point, Polygon
 from pyroutelib3 import Datastore
 from tile import Tile, CoordDict, coord_from_tile
 from utils import *
-
+import urllib
 
 def latlons_to_gpx(latlons, filename, name):
     gpx = gpxpy.gpx.GPX()
 
     # Create first track in our GPX:
-    gpx_track = gpxpy.gpx.GPXTrack(name=name)
+    print(name, urllib.parse.quote(name))
+    gpx_track = gpxpy.gpx.GPXTrack(name=urllib.parse.quote(name))
     gpx.tracks.append(gpx_track)
 
     # Create first segment in our GPX track:
