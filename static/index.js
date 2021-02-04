@@ -1,4 +1,10 @@
 $(document).ready(function(){
+
+    // Add collapse indicator for sections
+    $('h3').each(function(){
+        $('<svg class="collapse-indicator" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" fill="none" stroke-linecap="round" d="M6.25 2.5 l7.5 7.5 l-7.5 7.5" /></svg>').prependTo($(this))
+    })
+
     $.i18n(/*{locale:'en'}*/).load({
         'en': 'i18n/en.json',
         'fr': 'i18n/fr.json'
@@ -410,7 +416,7 @@ $(document).ready(function(){
             $.ajax({
                 type: 'GET',
                 url: 'statshunters',
-                data: {url: $("#statshunters_url").val()},
+                data: {url: $("#statshunters_url").val(), filter:$("#statshunters_filter").val()},
                 success: function ( data ) {
                     if (data.status=="OK") {
                         if (maxSquare) {
@@ -418,6 +424,7 @@ $(document).ready(function(){
                             maxSquare = false;
                         }
                         localStorage.setItem("statshunters_url", $("#statshunters_url").val());
+                        localStorage.setItem("statshunters_filter", $("#statshunters_filter").val());
                         is_visited = true
                         missing_tiles = data.tiles
                         maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
@@ -434,6 +441,10 @@ $(document).ready(function(){
             e.preventDefault();
         });
         {
+            let statshunters_filter = localStorage.getItem("statshunters_filter")
+            if (statshunters_filter) {
+                $("#statshunters_filter").val(statshunters_filter);
+            }
             let statshunters_url = localStorage.getItem("statshunters_url")
             if (statshunters_url) {
                 $("#statshunters_url").val(statshunters_url);
@@ -441,11 +452,13 @@ $(document).ready(function(){
             }
         }
         $("#bImportStatsHuntersReset").click(function() {
+            localStorage.removeItem("statshunters_filter");
             localStorage.removeItem("statshunters_url");
             if (maxSquare) {
                 maxSquare.remove();
                 maxSquare = false;
             }
+            $("#statshunters_filter").val("");
             $("#statshunters_url").val("");
             missing_tiles = [];
             is_visited = false;

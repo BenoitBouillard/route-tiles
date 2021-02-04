@@ -1,7 +1,8 @@
 {
   "@metadata": {},
   "msg-missing-tiles-file": "Fichier KML des tiles manquants",
-  "message-mode-roadcycle" : "Route",
+  "message-mode-roadcycle" : "Vélo de route",
+  "message-mode-roadfoot" : "Route à pied",
   "message-mode-foot" : "Chemin",
   "message-mode-trail" : "Trail",
   "message-start-button": "Départ",
@@ -33,6 +34,7 @@
   "msg-button-rename": "Renommer la route",
   "msg-button-download": "Télécharger la route",
   "msg-button-merge": "Fusionner avec la prochaine route sélectionnée",
-  "msg-button-delete": "Supprimer la route"
+  "msg-button-delete": "Supprimer la route",
+  "msg-import-statshunters-filter-message": "Filtre sur les activités"
 
 }

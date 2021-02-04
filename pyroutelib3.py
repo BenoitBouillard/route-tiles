@@ -98,6 +98,14 @@ TYPES = {
         "weights": {"primary": 0.05, "secondary": 0.15, "tertiary": 0.3, "unclassified": 1,
                     "residential": 1, "track": 1.5, "service": 1, "bridleway": 5, "path": 1.5},
         "access": ["access", "horse"]},
+    "road_foot": {
+        "weights": {"trunk": 0.3, "primary": 0.7, "secondary": 1, "tertiary": 1,
+                    "unclassified": 1, "residential": 1, "living_street": 1, "track": 0.1, "service": 1,
+                    "bridleway": 0.1, "footway": filter_asphalt, "path": filter_asphalt, "steps": 1},
+        "access": ["access", "foot"],
+        "transport": "foot"
+
+    },
     "foot": {
         "weights": {"trunk": 0.3, "primary": 0.6, "secondary": 0.9, "tertiary": 1,
                     "unclassified": 1, "residential": 1, "living_street": 1, "track": 1, "service": 1,
@@ -219,7 +227,7 @@ class Datastore:
             self.type = transport
 
         else:
-            self.transport = transport if transport not in ["cycle",
+            self.transport = TYPES[transport].get('transport', transport) if transport not in ["cycle",
                                                             "roadcycle"] else "bicycle"  # Osm uses bicycle in tags
             self.type = TYPES[transport].copy()
 

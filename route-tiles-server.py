@@ -103,12 +103,13 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
         url = qs['url'][0]
+        sh_filter = qs['filter'][0]
 
         data_folder = Path(__file__).parent.joinpath('data')
         data_folder.mkdir(exist_ok=True)
         folder = get_statshunters_activities(url, data_folder)
 
-        tiles = tiles_from_activities(folder)
+        tiles = tiles_from_activities(folder, filter_str=sh_filter)
 
         max_square, max_square_x, max_square_y = compute_max_square(tiles)
 

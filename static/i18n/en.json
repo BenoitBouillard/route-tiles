@@ -1,7 +1,8 @@
 {
   "@metadata": {},
   "msg-missing-tiles-file": "Missing tiles kml file",
-  "message-mode-roadcycle" : "Road",
+  "message-mode-roadcycle" : "Roadcycle",
+  "message-mode-roadfoot" : "Road by foot",
   "message-mode-foot" : "Foot",
   "message-mode-trail" : "Trail",
   "message-start-button": "Start",
@@ -33,5 +34,7 @@
   "msg-button-rename": "Rename the trace",
   "msg-button-download": "Download trace",
   "msg-button-merge": "Merge with next selected route",
-  "msg-button-delete": "Delete route"
+  "msg-button-delete": "Delete route",
+  "msg-import-statshunters-filter-message": "Filter on activities"
+
 }

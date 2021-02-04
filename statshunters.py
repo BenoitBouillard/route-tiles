@@ -4,6 +4,7 @@ import json
 from urllib.request import urlretrieve
 from utils import retry
 from pathlib import Path
+import re
 
 
 @retry(Exception, tries=6, delay=60, backoff=2)
@@ -36,7 +37,7 @@ def get_statshunters_activities(sharelink_url, folder, full=False):
     return activities_path
 
 
-def tiles_from_activities(activities_dir):
+def tiles_from_activities(activities_dir, filter_str=None):
     # Get tiles from activities files from statshunters
     directory = os.fsencode(activities_dir)
     tiles = []
@@ -47,6 +48,8 @@ def tiles_from_activities(activities_dir):
             with open(os.path.join(activities_dir, filename)) as f:
                 d = json.load(f)
                 for activity in d['activities']:
+                    if filter_str and not eval(filter_str, globals(),{"activity": activity}):
+                        continue
                     for tile in activity['tiles']:
                         uid = "{0}_{1}".format(tile['x'], tile['y'])
                         if uid not in tiles:
