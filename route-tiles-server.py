@@ -15,7 +15,7 @@ from pathlib import Path
 from pprint import pprint
 from urllib import parse
 
-from tilesrouter import RouteServer, compute_missing_kml, latlons_to_gpx, tiles_to_kml
+from tilesrouter import RouteServer, latlons_to_gpx, tiles_to_kml
 from statshunters import get_statshunters_activities, tiles_from_activities, compute_max_square
 from tile import coord_from_tile
 
@@ -255,20 +255,6 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed_path = parse.urlparse(self.path)
         self.session = self.get_session()
-
-        if parsed_path.path == "/set_kml":
-            self._set_headers()
-            r, info = self.deal_post_data()
-            if r:
-                tiles = compute_missing_kml(r)
-                if tiles:
-                    self.wfile.write(json.dumps({'status': 'OK', 'sessionId': self.sessionId, 'tiles': tiles['tiles'],
-                                                 'maxSquare': tiles['coord']}).encode('utf-8'))
-                else:
-                    self.wfile.write(
-                        json.dumps({'status': 'Fail', 'message': 'unable to read the KML file'}).encode('utf-8'))
-            else:
-                self.wfile.write(json.dumps({'status': 'Fail', 'message': 'unable to decode data'}).encode('utf-8'))
 
         if parsed_path.path == "/generate_gpx":
             self._set_headers()

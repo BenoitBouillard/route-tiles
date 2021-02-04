@@ -121,10 +121,8 @@ $(document).ready(function(){
         var displayed_tiles = new Map();
         var selected_tiles = []
 
-        var missing_tiles = []
-        var is_visited = false
-
         var visited_tiles = []
+        var routes_visited_tiles = []
         var error_tiles = []
 
 
@@ -149,11 +147,11 @@ $(document).ready(function(){
                             let color = 'blue';
                             let weight = 0.1;
                             let opacity = 0;
-                            if (missing_tiles.includes(tile_id) ^ is_visited) {
+                            if (visited_tiles.includes(tile_id) ^ true) {
                                 color = 'red';
                                 weight = 1.0;
                             }
-                            if (visited_tiles.includes(tile_id)) {
+                            if (routes_visited_tiles.includes(tile_id)) {
                                 opacity = 0.3;
                             }
                             let tile_rect = tile(boundsFromTile(x, y), {color: color, fillColor: color, fillOpacity:opacity, weight:weight, tile_id:tile_id}).addTo(tilesLayerGroup);
@@ -365,50 +363,7 @@ $(document).ready(function(){
             timeoutID = window.setTimeout(start_route, 2000, ++active_timeout);
         }
 
-
-
         var maxSquare = false;
-
-
-        $('form#set_kml input').on('change', function(e) {
-            if ($('form#set_kml input').val()) {
-                $( 'form#set_kml' ).submit();
-            }
-        });
-        $( 'form#set_kml' ).submit(function ( e ) {
-            var data;
-
-            data = new FormData();
-            data.append( 'file', $( '#file' )[0].files[0] );
-
-            $.ajax({
-                type: 'POST',
-                url: 'set_kml',
-                data: data,
-                processData: false,
-                contentType:false,
-                success: function ( data ) {
-                    let tiles = data.tiles;
-                    if (data.status=="OK") {
-                        if (maxSquare) {
-                            maxSquare.remove();
-                            maxSquare = false;
-                        }
-                        is_visited = false
-                        missing_tiles = data.tiles
-                        maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
-                        displayed_tiles.clear();
-                        tilesLayerGroup.clearLayers();
-                        mymap.fitBounds(maxSquare.getBounds().pad(0.1));
-                    }
-                    else {
-                        alert(data.message);
-                    }
-                }
-            });
-
-            e.preventDefault();
-        });
 
         $( 'button#bImportStatsHunters' ).click(function ( e ) {
             var data;
@@ -425,8 +380,7 @@ $(document).ready(function(){
                         }
                         localStorage.setItem("statshunters_url", $("#statshunters_url").val());
                         localStorage.setItem("statshunters_filter", $("#statshunters_filter").val());
-                        is_visited = true
-                        missing_tiles = data.tiles
+                        visited_tiles = data.tiles
                         maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
                         displayed_tiles.clear();
                         tilesLayerGroup.clearLayers();
@@ -437,7 +391,6 @@ $(document).ready(function(){
                     }
                 }
             });
-
             e.preventDefault();
         });
         {
@@ -460,8 +413,7 @@ $(document).ready(function(){
             }
             $("#statshunters_filter").val("");
             $("#statshunters_url").val("");
-            missing_tiles = [];
-            is_visited = false;
+            visited_tiles = [];
             displayed_tiles.clear();
             tilesLayerGroup.clearLayers();
             updateMapTiles();
@@ -617,8 +569,8 @@ $(document).ready(function(){
                 if ($('#show-tiles').is(':checked')) {
                     for (const latlng of routePolyline.getLatLngs()) {
                         const tile_id = TileIdFromLatLng(latlng);
-                        if (! visited_tiles.includes(tile_id)) {
-                            visited_tiles.push(tile_id);
+                        if (! routes_visited_tiles.includes(tile_id)) {
+                            routes_visited_tiles.push(tile_id);
                             if (displayed_tiles.has(tile_id)) {
                                 const tile = displayed_tiles.get(tile_id);
                                 tile.highlight(true);

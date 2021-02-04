@@ -622,63 +622,6 @@ class MyRouter(object):
             return False
 
 
-def compute_missing_kml(file):
-    k = kml.KML()
-    doc = file.read()
-    try:
-        k.from_string(doc)
-    except Exception as e:
-        print(e)
-        return False
-
-    features = list(k.features())
-    folder = list(features[0].features())[0]
-    # folder = features[0]
-    xmin, xmax, ymin, ymax = None, None, None, None
-    not_found_tiles = []
-    for placemark in folder.features():
-        tile = Tile(placemark.geometry.coords)
-        not_found_tiles.append(tile.uid)
-        if not xmin or tile.x < xmin:
-            xmin = tile.x
-        if not xmax or tile.x > xmax:
-            xmax = tile.x
-        if not ymin or tile.y < ymin:
-            ymin = tile.y
-        if not ymax or tile.y > ymax:
-            ymax = tile.y
-
-    max_square = 1
-    max_square_x = 0
-    max_square_y = 0
-
-    def is_square(pos_x, pos_y, m):
-        if pos_x + m > xmax or pos_y + m > ymax:
-            return False
-        for dx in range(m):
-            for dy in range(m):
-                uid = "{}_{}".format(pos_x + dx, pos_y + dy)
-                if uid in not_found_tiles:
-                    return False
-        return True
-
-    # Trouver le carré le plus grand
-    for x in range(xmin, xmax + 1):
-        for y in range(ymin, ymax + 1):
-            while True:
-                if is_square(x, y, max_square + 1):
-                    max_square_x = x
-                    max_square_y = y
-                    max_square = max_square + 1
-                else:
-                    break  # while break
-
-    max_square_coord = (coord_from_tile(max_square_x, max_square_y),
-                        coord_from_tile(max_square_x + max_square, max_square_y + max_square))
-    print("Max square:{} at {},{}".format(max_square, max_square_x, max_square_y))
-    return {"tiles": not_found_tiles, "max": max_square, "coord": max_square_coord}
-
-
 class RouteServer(object):
     def __init__(self):
         self.stored_tiles = {}

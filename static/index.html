@@ -72,7 +72,7 @@
             <div id="mapid">
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 pmap" style="overflow-y:auto">
 
             <h3 aria-expanded="true" data-target="#section-configuration" data-toggle="collapse"><span data-i18n="msg-section-configuration">Configuration</span></h3>
 
@@ -270,55 +270,26 @@
             <h3 aria-expanded="true" data-target="#section-missing" data-toggle="collapse"><span data-i18n="msg-title-missing-tiles">Missing tiles</span></h3>
 
             <div class="collapse show" id="section-missing">
-
-                <div class="accordion" id="accordion-import">
-                    <div class="card">
-                        <button class="card-header btn btn-link btl-block text-left" type="button"
-                                data-toggle="collapse" data-target="#collapse_statshunters"
-                                aria-expanded="true" aria-controls="collapse_statshuters">
-                            StatsHunters
-                        </button>
-                        <div id="collapse_statshunters" class="collapse card-body hide" data-parent="#accordion-import">
-                            <div>
-                                <span data-i18n="msg-import-statshunters-message"></span>
-                                <a href="https://statshunters.com/share">statshunters.com</a>
-                            </div>
-                            <input id="statshunters_url" class="form-control" name="statshunters_url" type="text"/>
-                            <div>
-                                <span data-i18n="msg-import-statshunters-filter-message">Filter to apply on activities</span>
-                            </div>
-                            <input id="statshunters_filter" class="form-control" name="statshunters_filter" type="text"/>
-                            <button class="btn btn-primary" id="bImportStatsHunters"
-                                    data-i18n="msg-import-statshunters"></button>
-                            <button class="btn btn-outline-danger" id="bImportStatsHuntersReset">
-                                <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20"
-                                     width="1.5em" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                                    <path clip-rule="evenodd"
-                                          d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
-                                          fill-rule="evenodd"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <button class="card-header btn btn-link btl-block text-left" type="button"
-                                data-toggle="collapse" data-target="#collapse_veloviewer"
-                                aria-expanded="false" aria-controls="collapse_veloviewer">
-                            Veloviewer
-                        </button>
-                        <div id="collapse_veloviewer" class="collapse card-body hide" data-parent="#accordion-import">
-                            <form id="set_kml">
-                                <div class="custom-file">
-                                    <input class="custom-file-input" id="file" type="file">
-                                    <label class="custom-file-label" data-browse="Selectionner..."
-                                           data-i18n="msg-missing-tiles-file" for="file">Fichier KML des tiles
-                                        manquants</label>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                <div>
+                    <span data-i18n="msg-import-statshunters-message"></span>
+                    <a href="https://statshunters.com/share">statshunters.com</a>
                 </div>
+                <input id="statshunters_url" class="form-control" name="statshunters_url" type="text"/>
+                <div>
+                    <span data-i18n="msg-import-statshunters-filter-message">Filter to apply on activities</span>
+                </div>
+                <input id="statshunters_filter" class="form-control" name="statshunters_filter" type="text"/>
+                <button class="btn btn-primary" id="bImportStatsHunters"
+                        data-i18n="msg-import-statshunters"></button>
+                <button class="btn btn-outline-danger" id="bImportStatsHuntersReset">
+                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20"
+                         width="1.5em" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
+                        <path clip-rule="evenodd"
+                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
+                              fill-rule="evenodd"/>
+                    </svg>
+                </button>
             </div>
         </div>
 
