@@ -16,7 +16,7 @@ from pprint import pprint
 from urllib import parse
 
 from tilesrouter import RouteServer, latlons_to_gpx, tiles_to_kml
-from statshunters import get_statshunters_activities, tiles_from_activities, compute_max_square
+from statshunters import get_statshunters_activities, tiles_from_activities, compute_max_square, compute_cluster
 from tile import coord_from_tile
 
 
@@ -111,13 +111,16 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
 
         tiles = tiles_from_activities(folder, filter_str=sh_filter)
 
-        max_square, max_square_x, max_square_y = compute_max_square(tiles)
+        kml_max_square = compute_max_square(tiles)
 
-        max_square_coord = (coord_from_tile(max_square_x, max_square_y),
-                            coord_from_tile(max_square_x + max_square, max_square_y + max_square))
+        kml_cluster = compute_cluster(tiles)
 
-        self.wfile.write(json.dumps({'status': 'OK', 'tiles': list(tiles),
-                                     'maxSquare': max_square_coord}).encode('utf-8'))
+
+
+        self.wfile.write(json.dumps({'status': 'OK',
+                                     'tiles': list(tiles),
+                                     'maxSquare': kml_max_square,
+                                     'cluster': kml_cluster}).encode('utf-8'))
 
     def do_GET_start_route(self):
         parsed_path = parse.urlparse(self.path)

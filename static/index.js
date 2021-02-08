@@ -1,5 +1,8 @@
 $(document).ready(function(){
 
+    $('#showMaxSquare').prop('checked', (localStorage.getItem('showMaxSquare') || "true") == "true");
+    $('#showCluster').prop('checked', (localStorage.getItem('showCluster') || "true") == "true");
+
     // Add collapse indicator for sections
     $('h3').each(function(){
         $('<svg class="collapse-indicator" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" fill="none" stroke-linecap="round" d="M6.25 2.5 l7.5 7.5 l-7.5 7.5" /></svg>').prependTo($(this))
@@ -363,7 +366,8 @@ $(document).ready(function(){
             timeoutID = window.setTimeout(start_route, 2000, ++active_timeout);
         }
 
-        var maxSquare = false;
+        var maxSquareLayer = false;
+        var clusterLayer = false;
 
         $( 'button#bImportStatsHunters' ).click(function ( e ) {
             var data;
@@ -374,17 +378,36 @@ $(document).ready(function(){
                 data: {url: $("#statshunters_url").val(), filter:$("#statshunters_filter").val()},
                 success: function ( data ) {
                     if (data.status=="OK") {
-                        if (maxSquare) {
-                            maxSquare.remove();
+                        if (maxSquareLayer) {
+                            maxSquareLayer.remove();
                             maxSquare = false;
+                        }
+                        if (clusterLayer) {
+                            clusterLayer.remove()
+                            clusterLayer = false;
                         }
                         localStorage.setItem("statshunters_url", $("#statshunters_url").val());
                         localStorage.setItem("statshunters_filter", $("#statshunters_filter").val());
                         visited_tiles = data.tiles
-                        maxSquare = L.rectangle(data.maxSquare, {interactive:false, color: 'red', fillOpacity:0, weight:2.0}).addTo(mymap);
                         displayed_tiles.clear();
                         tilesLayerGroup.clearLayers();
-                        mymap.fitBounds(maxSquare.getBounds().pad(0.1));
+                        //mymap.fitBounds(maxSquare.getBounds().pad(0.1));
+                        clusterLayer = omnivore.kml.parse(data.cluster)
+                        clusterLayer.setStyle({
+                            color: '#20ff2080',
+                            weight: 3
+                        });
+                        if ($('#showCluster').is(":checked")) {
+                            clusterLayer.addTo(mymap)
+                        }
+                        maxSquareLayer = omnivore.kml.parse(data.maxSquare)
+                        maxSquareLayer.setStyle({
+                            color: '#2020FF80',
+                            weight: 3
+                        });
+                        if ($('#showMaxSquare').is(":checked")) {
+                            maxSquareLayer.addTo(mymap)
+                        }
                     }
                     else {
                         alert(data.message);
@@ -700,6 +723,29 @@ $(document).ready(function(){
                     }
                 }
             });
+        });
+
+        $('#showCluster').on("change", function(e) {
+            if (clusterLayer) {
+                if (this.checked) {
+                  mymap.addLayer(clusterLayer)
+                }
+                else {
+                  mymap.removeLayer(clusterLayer)
+                }
+            }
+            localStorage.setItem('showCluster', this.checked);
+        });
+        $('#showMaxSquare').on("change", function(e) {
+            if (maxSquareLayer) {
+                if (this.checked) {
+                  mymap.addLayer(maxSquareLayer)
+                }
+                else {
+                  mymap.removeLayer(maxSquareLayer)
+                }
+            }
+            localStorage.setItem('showMaxSquare', this.checked);
         });
 
 

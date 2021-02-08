@@ -4,7 +4,10 @@ import json
 from urllib.request import urlretrieve
 from utils import retry
 from pathlib import Path
+from tile import Tile
 import re
+from shapely.ops import unary_union
+from fastkml import kml
 
 
 @retry(Exception, tries=6, delay=60, backoff=2)
@@ -57,6 +60,92 @@ def tiles_from_activities(activities_dir, filter_str=None):
     return frozenset(tiles)
 
 
+def getKmlFromGeom(geom):
+    # Create the root KML object
+    k = kml.KML()
+    ns = '{http://www.opengis.net/kml/2.2}'
+
+    # Create a KML Document and add it to the KML root object
+    d = kml.Document(ns)
+    k.append(d)
+
+    # Create a KML Folder and add it to the Document
+    f = kml.Folder(ns)
+    d.append(f)
+
+    # Create a KML Folder and nest it in the first Folder
+    nf = kml.Folder(ns)
+    f.append(nf)
+
+    # Create a second KML Folder within the Document
+    f2 = kml.Folder(ns)
+    d.append(f2)
+
+    # Create a Placemark with a simple polygon geometry and add it to the
+    # second folder of the Document
+    p = kml.Placemark(ns)
+    p.geometry =  geom
+    f2.append(p)
+
+    return k.to_string()
+
+
+def compute_zones(tiles):
+    tiles = set(tiles)
+    clusters = []
+    while True:
+        if len(tiles) == 0:
+            break
+
+        for c in tiles:
+            cluster = set([c])
+            boundary = set([c])
+            break
+
+        tiles -= cluster
+
+        while True:
+            new_c = set()
+            for tile in boundary:
+                x, y = tile
+                for dx, dy in adjoining:
+                    if (x + dx, y + dy) in tiles:
+                        new_c.add((x + dx, y + dy))
+            if new_c:
+                cluster |= new_c
+                boundary = new_c
+                tiles -= new_c
+            else:
+                break
+        clusters.append(cluster)
+
+    clusters.sort(key=len, reverse=True)
+    return clusters
+
+
+adjoining = [(1, 0), (-1, 0), (0, 1), (0, -1) ]
+
+
+def compute_cluster(tiles):
+    if isinstance(list(tiles)[0], str):
+        tiles = set([tuple([int(i) for i in t.split('_')]) for t in tiles])
+    cluster_tiles = set()
+    for (x,y) in tiles:
+        for dx, dy in adjoining:
+            if (x + dx, y + dy) not in tiles:
+                break
+        else:
+            cluster_tiles.add((x, y))
+
+    if len(cluster_tiles)==0:
+        return 0
+    zones = compute_zones(cluster_tiles)
+
+    geom_z = unary_union([Tile(*t).polygon for t in zones[0]])
+
+    return getKmlFromGeom(geom_z)
+
+
 def compute_max_square(tiles):
 
     def is_square(x, y, m):
@@ -76,7 +165,12 @@ def compute_max_square(tiles):
             max_square += 1
             x_max = x
             y_max = y
-    return max_square, x_max, y_max
+    tiles = set()
+    for x in range(x_max, x_max+max_square):
+        for y in range(y_max, y_max+max_square):
+            tiles.add(Tile("{}_{}".format(x,y)))
+    geom_z = unary_union([t.polygon for t in tiles])
+    return getKmlFromGeom(geom_z)
 
 
 if __name__ == '__main__':

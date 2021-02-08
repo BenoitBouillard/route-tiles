@@ -1,4 +1,4 @@
-from shapely.geometry import Point, LineString, LinearRing
+from shapely.geometry import Point, LineString, LinearRing, Polygon
 
 from utils import *
 
@@ -88,18 +88,22 @@ class ZoneWithEntries(object):
 # return self.entryNodeId[0]
 
 class Tile(ZoneWithEntries):
-    def __init__(self, uid):
+    def __init__(self, uid, y=None):
         super().__init__(name='')
         if isinstance(uid, str):
             self.uid = uid
             s = uid.split("_")
             self.x = s[0]
             self.y = s[1]
-        else:
+        elif y is None:
             s = tile_from_coord((min([x[1] for x in uid]) + max([x[1] for x in uid])) / 2,
                                 (max([x[0] for x in uid]) + min([x[0] for x in uid])) / 2)
             self.x = s[0]
             self.y = s[1]
+            self.uid = "{0.x}_{0.y}".format(self)
+        else:
+            self.x = uid
+            self.y = y
             self.uid = "{0.x}_{0.y}".format(self)
 
         geometry = geom_from_tile(self.uid)
@@ -113,6 +117,7 @@ class Tile(ZoneWithEntries):
         self.uid = "{0.x}_{0.y}".format(self)
         self.entryNodeId = []
         self.routesEntryNodes = {}
+        self.polygon = Polygon([(self.lonW, self.latN), (self.lonW, self.latS), (self.lonE, self.latS),  (self.lonE, self.latN)])
 
     @property
     def middle(self):

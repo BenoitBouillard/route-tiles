@@ -11,7 +11,7 @@ For "tiles" information, see [statshunters](https://www.statshunters.com) or [ve
 
 Requirements:
 
-- python 3.x
+- python 3.7 (shapely not well manage python 3.9)
 
 
 Open a terminal window and navigate to the folder that you want
@@ -192,18 +192,20 @@ It is possible also to merge routes with the "+" button:
 #### Missing tiles import
 It is possible to display missing tiles on the map to facilitate the tiles selection for a route.
 
-You can import data from statshunters (better way) or veloviewer:
+You can import data from statshunters:
 
 ##### StatsHunters
 StatsHunters.com offer the possibility to create a link to share your personal page with others.
 You have to create sharelink on [https://statshunters.com/share](https://statshunters.com/share) page and copy paste the full link
  (something like https://www.statshunters.com/share/abcdef123456) on the page and import.
 
-##### Veloviewer
-(https://veloviewer.com)[veloviewer.com] can export a kml file of missing tiles around your max square.
-You can import this file to display directly your max square 
-and the missing tiles.
+It is possible to add filter on statshunters. Some examples:
 
+
+```
+activity['type']=="Run" and '#fromHome' in activity['name'] and activity['date']>"2021"
+activity['type']=="Ride" and activity['date']>="2021"
+```
 
 ## TODO list
 
