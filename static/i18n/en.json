@@ -35,6 +35,8 @@
   "msg-button-download": "Download trace",
   "msg-button-merge": "Merge with next selected route",
   "msg-button-delete": "Delete route",
-  "msg-import-statshunters-filter-message": "Filter on activities"
+  "msg-import-statshunters-filter-message": "Filter on activities",
+  "msg-show-max-square": "Show max square",
+  "msg-show-cluster": "Show cluster"
 
 }

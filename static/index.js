@@ -568,7 +568,7 @@ $(document).ready(function(){
                 let trace_count = parseInt(localStorage.getItem("trace_count") || "0");
                 for (let trace_val=0; trace_val<trace_count; trace_val++) {
                     let coords = localStorage.getItem('trace'+trace_val+'_coords').split(",").map(x => x.split(" "));
-                    let rp = L.polyline(coords, {color: 'aqua', opacity:0.8}).addTo(mymap);
+                    let rp = L.polyline(coords, {color: 'green', opacity:0.8}).addTo(mymap);
                     saved_traces.push(rp);
                     let name = localStorage.getItem('trace'+trace_val+'_name');
                     let dist = localStorage.getItem('trace'+trace_val+'_length');
@@ -601,7 +601,7 @@ $(document).ready(function(){
                         }
                     }
                 }
-                saved_traces.push(routePolyline.setStyle({color:'aqua'}));
+                saved_traces.push(routePolyline.setStyle({color:'green'}));
                 routePolyline = false;
                 let name = $('#traceName').val();
                 let dist = $("#length").text();
@@ -618,7 +618,7 @@ $(document).ready(function(){
                 let pos = $(this).index();
                 if ($('#merge-trace').hasClass('btn-primary')) {
                     if (pos == previous_pos) {
-                        saved_traces[previous_pos].setStyle({color:'aqua'});
+                        saved_traces[previous_pos].setStyle({color:'green'});
                         $('div#traces-list>.active').removeClass('active');
                         $('#merge-trace').removeClass('btn-primary');
                         $('#trace-button-group').hide();
@@ -637,7 +637,7 @@ $(document).ready(function(){
                     }
                 } else {
                     if (previous_pos>=0) {
-                        saved_traces[previous_pos].setStyle({color:'aqua'});
+                        saved_traces[previous_pos].setStyle({color:'green'});
                         $('div#traces-list>.active').removeClass('active');
                     }
                     if (pos != previous_pos) {

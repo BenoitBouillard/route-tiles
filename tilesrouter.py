@@ -13,13 +13,14 @@ from pyroutelib3 import Datastore
 from tile import Tile, CoordDict, coord_from_tile
 from utils import *
 import urllib
+from xml.sax.saxutils import escape
 
 def latlons_to_gpx(latlons, filename, name):
     gpx = gpxpy.gpx.GPX()
 
     # Create first track in our GPX:
     print(name, urllib.parse.quote(name))
-    gpx_track = gpxpy.gpx.GPXTrack(name=urllib.parse.quote(name))
+    gpx_track = gpxpy.gpx.GPXTrack(name=escape(name))
     gpx.tracks.append(gpx_track)
 
     # Create first segment in our GPX track:
@@ -517,7 +518,6 @@ class MyRouter(object):
             _queue_insert(queue_item)
 
 
-
         # Start by queueing all outbound links from the start node
         if start not in self.router.routing:
             raise KeyError("node {} doesn't exist in the graph".format(start))
@@ -533,7 +533,7 @@ class MyRouter(object):
 
         # Limit for how long it will search
         count = 0
-        while count < 1000000 and not self._exit:
+        while not self._exit:
             count += 1
             _closeNode = True
             #_export_queue()
@@ -590,7 +590,7 @@ class MyRouter(object):
             # Found the end node - success
             if considered_node == end:
                 if len(not_visited_zones) == 0:
-                    _export_queue(next_item)
+                    #_export_queue(next_item)
                     print(next_item)
                     return "success", [int(i) for i in next_item["nodes"].split(",")]
 
