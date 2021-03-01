@@ -51,7 +51,7 @@ def tiles_from_activities(activities_dir, filter_str=None):
             with open(os.path.join(activities_dir, filename)) as f:
                 d = json.load(f)
                 for activity in d['activities']:
-                    if filter_str and not eval(filter_str, globals(),{"activity": activity}):
+                    if filter_str and not eval(filter_str, globals(),activity):
                         continue
                     for tile in activity['tiles']:
                         uid = "{0}_{1}".format(tile['x'], tile['y'])

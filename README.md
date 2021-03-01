@@ -201,10 +201,9 @@ You have to create sharelink on [https://statshunters.com/share](https://statshu
 
 It is possible to add filter on statshunters. Some examples:
 
-
 ```
-activity['type']=="Run" and '#fromHome' in activity['name'] and activity['date']>"2021"
-activity['type']=="Ride" and activity['date']>="2021"
+type=="Run" and '#fromHome' in name and date>"2021"
+type=="Ride" and date>="2021"
 ```
 
 ## TODO list
@@ -213,10 +212,10 @@ activity['type']=="Ride" and activity['date']>="2021"
 - [ ] [Improvement] Add Elevation
 - [ ] [Improvement] Add description to buttons
 - [ ] [Improvement] Add a way to reload tiles data (in case of data evolution on OSM server)
-- [ ] [Bug] Session management has no timeout
+- [X] [Bug] Session management has no timeout
 - [ ] [Improvement] Route management (multiple segments with tiles)
 - [ ] [Improvement] Gpx import
-- [ ] [Bug] Forbidden chars in gpx issue
+- [X] [Bug] Forbidden chars in gpx issue
 - [X] [Improvement] Add installation for python package
 - [X] [Improvement] Localization in FR and EN
 - [X] [Improvement] Save routes locally

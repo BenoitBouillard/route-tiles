@@ -195,6 +195,8 @@ class Tile(ZoneWithEntries):
                     intersect_points = line.intersection(tile)
                     if intersect_points.geom_type == "Point":
                         intersect_points = [intersect_points]
+                    elif intersect_points.geom_type == "Line":
+                        intersect_points = [intersect_points.coords[0], intersect_points.coords[-1]]
                     else:
                         intersect_points = list(intersect_points)
 
