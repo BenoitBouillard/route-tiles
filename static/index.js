@@ -585,20 +585,41 @@ $(document).ready(function(){
 
         {
             var traces = [];
+            var filterActive = localStorage.getItem("filterActive")=="true";
+
+            function filter_traces() {
+                $('#filter-traces').toggleClass('active', filterActive);
+                $('#filter-form').toggle(filterActive);
+                var filter = ""
+                if (filterActive) {
+                    filter = localStorage.getItem("filterField")
+                }
+                const regex = new RegExp(filter);
+                traces.forEach(function(trace) {
+                    if (regex.test(trace.name)) {
+                        trace.hmi.show();
+                        trace.polyline.setStyle({color:'green'})
+                    } else {
+                        trace.hmi.hide();
+                        trace.polyline.setStyle({color:'rgba(0,0,0,0)'})
+                    }
+                })
+            }
 
             function refresh_localstorage_traces() {
-                localStorage.setItem("traces", JSON.stringify(traces, ['name', 'distance', 'visible', 'route']))
+                localStorage.setItem("traces", JSON.stringify(traces, ['name', 'distance', 'route']))
             }
 
             { // ROUTES localstorage
                 traces = JSON.parse(localStorage.getItem("traces")) || []
+                // Compatibility
                 if (traces.length==0 && localStorage.getItem("trace_count")) {
                     let trace_count = parseInt(localStorage.getItem("trace_count") || "0");
                     for (let trace_val=0; trace_val<trace_count; trace_val++) {
                         let coords = localStorage.getItem('trace'+trace_val+'_coords').split(",").map(x => x.split(" ").map(v => parseFloat(v)));
                         let name = localStorage.getItem('trace'+trace_val+'_name');
                         let dist = localStorage.getItem('trace'+trace_val+'_length');
-                        traces.push({name: name, distance: dist, route: coords, visible: true})
+                        traces.push({name: name, distance: dist, route: coords})
                     }
                     refresh_localstorage_traces();
                     for (let trace_val=0; trace_val<trace_count; trace_val++) {
@@ -610,17 +631,23 @@ $(document).ready(function(){
                 }
                 traces.forEach(function(trace) {
                     let s = $('<a href="#" class="list-group-item list-group-item-action"><span>'+trace.name+'</span><span class="badge badge-light" style="float:right;">'+trace.distance+'</span></a>').appendTo('#traces-list')
-                    let color = 'rgba(0,0,0,0)'
-                    if (trace.visible) {
-                        color = 'green';
-                    }
-                    else {
-                        s.addClass("list-group-item-light")
-
-                    }
-                    trace.polyline = L.polyline(trace.route, {color: color, opacity:0.8}).addTo(mymap);
+                    trace.polyline = L.polyline(trace.route, {color: 'green', opacity:0.8}).addTo(mymap);
+                    trace.hmi = s
                 });
             }
+
+            $('#filter-traces').on("click", function(e) {
+                filterActive = ! filterActive;
+                localStorage.setItem("filterActive", filterActive)
+                filter_traces();
+            })
+
+            $('input#filterField').on('change', function() {
+                localStorage.setItem('filterField', this.value);
+                filter_traces();
+            })
+            $('input#filterField').val(localStorage.getItem('filterField') || '');
+            filter_traces();
 
             $('button#addTrace').on("click", function(e) {
                 if ($('#show-tiles').is(':checked')) {
@@ -640,7 +667,7 @@ $(document).ready(function(){
                 $('<a href="#" class="list-group-item list-group-item-action"><span>'+name+'</span><span class="badge badge-light" style="float:right;">'+dist+'</span></a>').appendTo('#traces-list')
                 $('button#addTrace').prop("disabled", true);
                 routePolyline.setStyle({color:'green'});
-                let trace = {name: $('#traceName').val(), distance: $("#length").text(), visible:true, route: routePolyline.getLatLngs().map(x => [x.lat,x.lng]), polyline: routePolyline};
+                let trace = {name: $('#traceName').val(), distance: $("#length").text(), route: routePolyline.getLatLngs().map(x => [x.lat,x.lng]), polyline: routePolyline};
                 traces.push(trace)
                 routePolyline = false;
                 refresh_localstorage_traces();
@@ -673,24 +700,20 @@ $(document).ready(function(){
                     }
                 } else {
                     if (previous_pos>=0) {
-                        if (traces[previous_pos].visible) {
-                            traces[previous_pos].polyline.setStyle({color:'green'});
-                        } else {
-                            traces[previous_pos].polyline.setStyle({color:'rgba(0,0,0,0)'});
-                        }
+                        traces[previous_pos].polyline.setStyle({color:'green'});
                         $('div#traces-list>.active').removeClass('active');
                     }
                     if (pos != previous_pos) {
                         $(this).addClass('active');
                         //saved_traces[pos].setStyle({color:'blue'}).bringToFront();
                         traces[pos].polyline.setStyle({color:'blue'}).bringToFront();
-                        //$('#trace-button-group').show();
+                        $('#trace-button-group').show();
                     } else {
-                        //$('#trace-button-group').hide();
+                        $('#trace-button-group').hide();
                     }
                 }
             });
-            //$('#trace-button-group').hide();
+            $('#trace-button-group').hide();
 
             $('#remove-trace').on('click', function(e) {
                 let pos = $('div#traces-list>.active').index();
@@ -701,34 +724,6 @@ $(document).ready(function(){
                     refresh_localstorage_traces();
                 }
             });
-
-            $('#hide-trace').on('click', function(e) {
-                let pos = $('div#traces-list>.active').index();
-                if (pos>=0) {
-                    traces[pos].visible = !traces[pos].visible
-                    if (traces[pos].visible) {
-                        traces[pos].polyline.setStyle({color:'green'})
-                        $('div#traces-list>.active').removeClass("list-group-item-light")
-                    } else {
-                        traces[pos].polyline.setStyle({color:'rgba(0,0,0,0)'})
-                        $('div#traces-list>.active').addClass("list-group-item-light")
-                    }
-                    refresh_localstorage_traces();
-                }
-            });
-
-            var hide_hidden_trace = false;
-            $('#hide-traces').on('click', function(e) {
-                hide_hidden_trace = ! hide_hidden_trace;
-                if (hide_hidden_trace) {
-                    $('div#traces-list>.list-group-item-light').hide();
-                } else {
-                    $('div#traces-list>.list-group-item-light').show();
-                }
-            });
-
-
-
 
             $('#merge-trace').on('click', function(e) {
                 if ($(this).hasClass('btn-primary')) {

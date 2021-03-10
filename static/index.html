@@ -173,7 +173,7 @@
 
                 </div>
 
-                <h6>Téléchargement</h6>
+                <h6 data-i18n="msg-title-download">Téléchargement</h6>
                 <div class="form-group row">
                     <label for="gpxFilename" class="col-form-label col-sm-4" data-i18n="msg-download-filename">Nom du fichier</label>
                     <input id="gpxFilename" name="gpxFilename" type="text" class="form-control col-sm-6"/>
@@ -228,12 +228,11 @@
                 <div style="height:2.4em;">
                     <b>Routes:</b>
                     <span>
-                    <div aria-label="menu" class="btn-group" id="trace-button-group" role="group">
+                    <div aria-label="menu" class="btn-group" role="group">
 
-                        <button class="btn btn-outline-info" id="hide-traces" type="button" title="hide traces" data-i18n="[title]msg-button-hide-traces">
-                            <svg class="bi bi-type" width="1em" height="1em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12.5 10a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                              <path fill-rule="evenodd" d="M2 10s3-5.5 8-5.5 8 5.5 8 5.5-3 5.5-8 5.5S2 10 2 10zm8 3.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" clip-rule="evenodd"/>
+                        <button class="btn btn-outline-info" id="filter-traces" type="button" title="filter traces" data-i18n="[title]msg-button-filter-traces">
+                            <svg class="bi bi-filter" width="1em" height="1em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path fill-rule="evenodd" d="M7.5 13a.5.5 0 01.5-.5h4a.5.5 0 010 1H8a.5.5 0 01-.5-.5zm-2-3a.5.5 0 01.5-.5h8a.5.5 0 010 1H6a.5.5 0 01-.5-.5zm-2-3a.5.5 0 01.5-.5h12a.5.5 0 010 1H4a.5.5 0 01-.5-.5z" clip-rule="evenodd"/>
                             </svg>
                         </button>
                     </div>
@@ -242,14 +241,6 @@
                         <button class="btn btn-outline-info action_on_trace" id="rename-trace" type="button" title="rename" data-i18n="[title]msg-button-rename">
                             <svg class="bi bi-type" width="1em" height="1em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                               <path d="M4.244 15.081l.944-2.803H8.66l.944 2.803h1.257L7.54 5.75H6.322L3 15.081h1.244zm2.7-7.923l1.395 4.157h-2.83L6.91 7.158h.034zm9.146 7.027h.035v.896h1.128v-4.956c0-1.51-1.114-2.345-2.646-2.345-1.736 0-2.59.916-2.666 2.174h1.108c.068-.718.595-1.19 1.517-1.19.971 0 1.518.52 1.518 1.463v.732H14.19c-1.647.007-2.522.8-2.522 2.058 0 1.319.957 2.18 2.345 2.18 1.06 0 1.716-.43 2.078-1.011zm-1.763.035c-.752 0-1.456-.397-1.456-1.244 0-.65.424-1.115 1.408-1.115h1.805v.834c0 .896-.752 1.525-1.757 1.525z"/>
-                            </svg>
-                        </button>
-                        <button class="btn btn-outline-info action_on_trace" id="hide-trace" type="button" title="rename" data-i18n="[title]msg-button-hide">
-                            <svg class="bi bi-type" width="1em" height="1em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M15.359 13.238C17.06 11.72 18 10 18 10s-3-5.5-8-5.5a7.028 7.028 0 00-2.79.588l.77.771A5.944 5.944 0 0110 5.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0116.828 10c-.058.087-.122.183-.195.288a13.14 13.14 0 01-1.465 1.755c-.165.165-.337.328-.517.486l.708.709z"/>
-                              <path d="M13.297 11.176a3.5 3.5 0 00-4.474-4.474l.823.823a2.5 2.5 0 012.829 2.829l.822.822zm-2.943 1.299l.822.822a3.5 3.5 0 01-4.474-4.474l.823.823a2.5 2.5 0 002.829 2.829z"/>
-                              <path d="M5.35 7.47c-.18.16-.353.322-.518.487A13.134 13.134 0 003.172 10l.195.288c.335.48.83 1.12 1.465 1.755C6.121 13.332 7.881 14.5 10 14.5c.716 0 1.39-.133 2.02-.36l.77.772A7.027 7.027 0 0110 15.5c-5 0-8-5.5-8-5.5s.939-1.721 2.641-3.238l.708.709z"/>
-                              <path fill-rule="evenodd" d="M15.646 16.354l-12-12 .708-.708 12 12-.708.707z" clip-rule="evenodd"/>
                             </svg>
                         </button>
                         <button class="btn btn-outline-info action_on_trace" id="togpx-trace" type="button" title="download" data-i18n="[title]msg-button-download">
@@ -281,6 +272,11 @@
                     </div>
                         </span>
                 </div>
+                <div class="form-group row" id="filter-form">
+                    <label for="filterField" class="col-form-label col-sm-4" data-i18n="msg-input-filter">Filter</label>
+                    <input id="filterField" class="form-control col-sm-6" name="filterField" type="text"/>
+                </div>
+
                 <div class="list-group" id="traces-list">
                 </div>
                 <!--<div>
