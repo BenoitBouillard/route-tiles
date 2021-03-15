@@ -245,11 +245,12 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        print(self.path)
         parsed_path = parse.urlparse(self.path)
-        self.session = self.get_session()
 
         get_action_name = 'do_GET_' + parsed_path.path[1:]
         if hasattr(self, get_action_name):
+            self.session = self.get_session()
             self._set_headers()
             method = getattr(self, get_action_name)
             method()
@@ -257,6 +258,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        print(self.path)
         parsed_path = parse.urlparse(self.path)
         self.session = self.get_session()
 
@@ -336,6 +338,8 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             self.sessionId = generate_random(8)
             session_object = SessionElement()
             sessionDict[self.sessionId] = session_object
+            print("Create session", self.sessionId)
+
         session_object.refresh()
         check_sessions()
         return session_object
