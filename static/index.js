@@ -79,6 +79,7 @@ $(document).ready(function(){
 
         var mymap = L.map('mapid', {zoomSnap: 0.5, zoomDelta: 0.5, wheelPxPerZoomLevel:100, wheelDebounceTime:20});
         var routePolyline = false;
+        var actualTrace = false;
 
         var tilesLayerGroup = L.layerGroup().addTo(mymap);
 
@@ -91,11 +92,8 @@ $(document).ready(function(){
         }
 
         function TileIdFromLatLng(latlon) {
-            let n = Math.pow(2,14);
-            let x = Math.floor(n * (latlon.lng + 180 ) / 360);
-            let lat_r = latlon.lat*Math.PI/180;
-            let y = Math.floor(n * ( 1 - ( Math.log( Math.tan(lat_r) + 1/Math.cos(lat_r) ) / Math.PI ) ) / 2);
-            return x + "_" + y;
+            let ll = TileFromCoord(latlon.lat, latlon.lng)
+            return ll[0] + "_" + ll[1]
         }
 
         function LatLngFromTile(x, y) {
@@ -116,10 +114,8 @@ $(document).ready(function(){
             return boundsFromTile(x, y)
         }
 
-
         var displayed_tiles = new Map();
         var selected_tiles = []
-
         var visited_tiles = []
         var routes_visited_tiles = []
         var error_tiles = []
@@ -169,10 +165,14 @@ $(document).ready(function(){
                 }
             }
         }
-
-        mymap.on("moveend", updateMapTiles);
+        mymap.setView(JSON.parse(localStorage.getItem("map_center")) || [48.85, 2.35],
+                      JSON.parse(localStorage.getItem("map_zoom")) || 10);
+        mymap.on("moveend", function() {
+            localStorage.setItem("map_zoom", JSON.stringify(mymap.getZoom()))
+            localStorage.setItem("map_center", JSON.stringify(mymap.getCenter()))
+            updateMapTiles();
+        });
         mymap.on("load", updateMapTiles);
-        mymap.setView([48.85, 2.35], 10);
 
         mymap.on("click", function(e) {
             if (selectLoc!=false) return;
@@ -186,7 +186,7 @@ $(document).ready(function(){
                     selected_tiles.push(tile_id);
                     tile.select(1);
                 }
-                localStorage.setItem("selected_tiles", selected_tiles);
+                localStorage.setItem("selected_tiles", JSON.stringify(selected_tiles));
 
                 request_route();
             }
@@ -212,7 +212,7 @@ $(document).ready(function(){
         var active_timeout = 0;
         var route_rq_id = 0;
         var sessionId = false;
-        var state = false
+        var state = false;
 
         function setMessageAlert(level) {
             $("#progress-message").removeClass(function(index, className){
@@ -244,6 +244,7 @@ $(document).ready(function(){
                             setMessageAlert('success');
                             $("#spinner-searching").hide();
                             timeoutID = false;
+                            actualTrace =  {distance: data.length, route: data.route, polyline: routePolyline};
                             $('button#addTrace').prop("disabled", false);
                         }
                     } else {
@@ -263,44 +264,58 @@ $(document).ready(function(){
             });
         };
 
-        { // MODE
-            let storage_mode = localStorage.getItem('mode')
-            if (storage_mode) {
-                let val = $("#mode-selection").find('option[data-mode="'+storage_mode+'"]').val();
-                $("#mode-selection").val(val);
-            }
+        { // CONFIG-STORAGE
+            $('select.config-storage').each(function(){
+                let id = this.id;
+                let storage = localStorage.getItem(id)
+                if (storage) {
+                    let val = $(this).find('option[data-value="'+storage+'"]').val();
+                    $(this).val(val);
+                }
 
-            $('#mode-selection').on('change', function(e) {
-                e.preventDefault();
-                $('#mode-selection').data('mode', $(this).find(':selected').data('mode'));
-                localStorage.setItem('mode', $(this).find(':selected').data('mode'));
+                $(this).on('change', function(e) {
+                    e.preventDefault();
+                    $(this).data('value', $(this).find(':selected').data('value'));
+                    localStorage.setItem(this.id, $(this).find(':selected').data('value'));
+                });
+            });
+
+            $('input[type="text"].config-storage').each(function(){
+                let id = this.id;
+                $(this).val(localStorage.getItem(id) || "");
+
+                $(this).on('change', function(e) {
+                    e.preventDefault();
+                    localStorage.setItem(this.id, $(this).val());
+                });
+            });
+
+            $('input[type="checkbox"].config-storage').each(function(){
+                let id = this.id;
+                $(this).prop('checked', (localStorage.getItem(id) || "true") == "true");
+
+                $(this).on('change', function(e) {
+                    e.preventDefault();
+                    localStorage.setItem(this.id, this.checked);
+                });
+            });
+
+            $('.request-route').on("change", function() {
                 request_route();
             });
-        }
-
-        {
-            let turnaround_cost = localStorage.getItem('turnaround-cost')
-            if (turnaround_cost) {
-                let val = $("#turnaround-cost").find('option[data-cost="'+turnaround_cost+'"]').val();
-                $("#turnaround-cost").val(val);
-            }
-
-            $('#turnaround-cost').change(function(){
-                localStorage.setItem('turnaround-cost', $(this).find(':selected').data('cost'));
-                request_route();
-            });
-        }
+        } // CONFIG-STORAGE
 
         function start_route(timeout_id) {
             if (timeout_id != active_timeout) return;
             $('button#addTrace').prop("disabled", true);
+            actualTrace = false;
             setMessageAlert('info');
             $("#message").text($.i18n("message-state-ask-route"));
             $("#length").text("");
             $("#spinner-searching").show();
             let data = { 'sessionId'      : sessionId,
                          'start'          : latlonToQuery(markers['start'].getLatLng()),
-                         'turnaroundCost':$("#turnaround-cost").find(':selected').data('cost') }
+                         'turnaroundCost':$("#turnaround-cost").find(':selected').data('value') }
             if ('end' in markers) {
                 data['end'] = latlonToQuery(markers['end'].getLatLng());
             }
@@ -308,7 +323,7 @@ $(document).ready(function(){
                 data['end'] = data['start'];
             }
             data['tiles'] = selected_tiles
-            data['mode'] = $('#mode-selection').find(':selected').data('mode')
+            data['mode'] = $('#mode-selection').find(':selected').data('value')
 
             $.getJSON({
                 url: 'start_route',
@@ -357,8 +372,6 @@ $(document).ready(function(){
 
             var maxSquareLayer = false;
             var clusterLayer = false;
-            $('#showCluster').prop('checked', (localStorage.getItem('showCluster') || "true") == "true");
-            $('#showMaxSquare').prop('checked', (localStorage.getItem('showMaxSquare') || "true") == "true");
 
             $( 'button#bImportStatsHunters' ).click(function ( e ) {
                 var data;
@@ -377,8 +390,6 @@ $(document).ready(function(){
                                 clusterLayer.remove()
                                 clusterLayer = false;
                             }
-                            localStorage.setItem("statshunters_url", $("#statshunters_url").val());
-                            localStorage.setItem("statshunters_filter", $("#statshunters_filter").val());
                             visited_tiles = data.tiles
                             displayed_tiles.clear();
                             tilesLayerGroup.clearLayers();
@@ -409,13 +420,16 @@ $(document).ready(function(){
             });
 
             {
-                let statshunters_filter = localStorage.getItem("statshunters_filter")
+                /*let statshunters_filter = localStorage.getItem("statshunters_filter")
                 if (statshunters_filter) {
                     $("#statshunters_filter").val(statshunters_filter);
                 }
                 let statshunters_url = localStorage.getItem("statshunters_url")
                 if (statshunters_url) {
                     $("#statshunters_url").val(statshunters_url);
+
+                }*/
+                if ($("#statshunters_url").val()!="") {
                     $( 'button#bImportStatsHunters' ).click();
                 }
             }
@@ -447,7 +461,6 @@ $(document).ready(function(){
                       mymap.removeLayer(clusterLayer)
                     }
                 }
-                localStorage.setItem('showCluster', this.checked);
             });
             $('#showMaxSquare').on("change", function(e) {
                 if (maxSquareLayer) {
@@ -458,7 +471,6 @@ $(document).ready(function(){
                       mymap.removeLayer(maxSquareLayer)
                     }
                 }
-                localStorage.setItem('showMaxSquare', this.checked);
             });
         } // STATSHUNTERS
 
@@ -491,7 +503,7 @@ $(document).ready(function(){
         });
         $("button#clear-tiles").on("click", function(e) {
             selected_tiles = [];
-            localStorage.setItem("selected_tiles", selected_tiles);
+            localStorage.setItem("selected_tiles", JSON.stringify(selected_tiles));
             updateMapTiles();
             request_route();
     });
@@ -546,52 +558,28 @@ $(document).ready(function(){
 
 
         { // local Storage recovery
-            let bounds = false;
             function load_marker(name) {
                 let lcs = localStorage.getItem(name)
                 if (lcs) {
                     add_marker(name, lcs.split(','));
-                    if (bounds) {
-                        bounds.extend(markers[name].getLatLng().toBounds(1000));
-                    }
-                    else {
-                        bounds = markers[name].getLatLng().toBounds(1000);
-                    }
                 }
             }
             load_marker("start");
             load_marker("end");
-            selected_tiles = []
-            let lcs = localStorage.getItem("selected_tiles")
-            console.log(lcs)
-            if (lcs) {
-                selected_tiles = lcs.split(",")
-                for (let i=0; i<selected_tiles.length; i++) {
-                    if (bounds) {
-                        bounds.extend(boundsFromTileId(selected_tiles[i]));
-                    }
-                    else {
-                        bounds = boundsFromTileId(selected_tiles[i]);
-                    }
 
-                }
-                updateMapTiles();
-            }
-            if (bounds) {
-                mymap.fitBounds(bounds);
-            }
+            selected_tiles = JSON.parse(localStorage.getItem("selected_tiles")) || []
+            if (typeof selected_tiles=='string') { selected_tiles = selected_tiles.split(",");} // COMPATIBILITY
+            updateMapTiles();
+
             request_route();
         }
 
         {
             var traces = [];
-            var filterActive = localStorage.getItem("filterActive")=="true";
 
             function filter_traces() {
-                $('#filter-traces').toggleClass('active', filterActive);
-                $('#filter-form').toggle(filterActive);
                 var filter = ""
-                if (filterActive) {
+                if ($("#filter-activated").is(":checked")) {
                     filter = localStorage.getItem("filterField")
                 }
                 const regex = new RegExp(filter);
@@ -610,7 +598,12 @@ $(document).ready(function(){
                 localStorage.setItem("traces", JSON.stringify(traces, ['name', 'distance', 'route']))
             }
 
-            { // ROUTES localstorage
+            { // ROUTES localStorage
+                function gen_trace_hmi(trace) {
+                    trace.hmi = $('<a href="#" class="list-group-item list-group-item-action"><span>'+trace.name+'</span><span class="badge badge-light" style="float:right;">'+trace.distance.toFixed(2)+' km</span></a>')
+                    return trace.hmi
+                }
+
                 traces = JSON.parse(localStorage.getItem("traces")) || []
                 // Compatibility
                 if (traces.length==0 && localStorage.getItem("trace_count")) {
@@ -618,7 +611,7 @@ $(document).ready(function(){
                     for (let trace_val=0; trace_val<trace_count; trace_val++) {
                         let coords = localStorage.getItem('trace'+trace_val+'_coords').split(",").map(x => x.split(" ").map(v => parseFloat(v)));
                         let name = localStorage.getItem('trace'+trace_val+'_name');
-                        let dist = localStorage.getItem('trace'+trace_val+'_length');
+                        let dist = parseFloat(localStorage.getItem('trace'+trace_val+'_length'));
                         traces.push({name: name, distance: dist, route: coords})
                     }
                     refresh_localstorage_traces();
@@ -630,23 +623,17 @@ $(document).ready(function(){
                     localStorage.removeItem('trace_count');
                 }
                 traces.forEach(function(trace) {
-                    let s = $('<a href="#" class="list-group-item list-group-item-action"><span>'+trace.name+'</span><span class="badge badge-light" style="float:right;">'+trace.distance+'</span></a>').appendTo('#traces-list')
+                    if (isNaN(trace.distance)) { // Compatibility
+                        trace.distance = parseFloat(trace.distance)
+                    }
+                    gen_trace_hmi(trace).appendTo('#traces-list')
                     trace.polyline = L.polyline(trace.route, {color: 'green', opacity:0.8}).addTo(mymap);
-                    trace.hmi = s
                 });
             }
 
-            $('#filter-traces').on("click", function(e) {
-                filterActive = ! filterActive;
-                localStorage.setItem("filterActive", filterActive)
+            $('#filter-activated,input#filterField').on("change", function(e) {
                 filter_traces();
             })
-
-            $('input#filterField').on('change', function() {
-                localStorage.setItem('filterField', this.value);
-                filter_traces();
-            })
-            $('input#filterField').val(localStorage.getItem('filterField') || '');
             filter_traces();
 
             $('button#addTrace').on("click", function(e) {
@@ -662,13 +649,13 @@ $(document).ready(function(){
                         }
                     }
                 }
-                let name = $('#traceName').val();
-                let dist = $("#length").text();
-                $('<a href="#" class="list-group-item list-group-item-action"><span>'+name+'</span><span class="badge badge-light" style="float:right;">'+dist+'</span></a>').appendTo('#traces-list')
+
+                actualTrace.name = $('#traceName').val();
+                gen_trace_hmi(actualTrace).appendTo('#traces-list')
+                actualTrace.polyline.setStyle({color:'green'});
+                traces.push(actualTrace)
+                actualTrace = false
                 $('button#addTrace').prop("disabled", true);
-                routePolyline.setStyle({color:'green'});
-                let trace = {name: $('#traceName').val(), distance: $("#length").text(), route: routePolyline.getLatLngs().map(x => [x.lat,x.lng]), polyline: routePolyline};
-                traces.push(trace)
                 routePolyline = false;
                 refresh_localstorage_traces();
             });
@@ -688,8 +675,8 @@ $(document).ready(function(){
                         $('#trace-button-group').hide();
                     } else {
                         traces[previous_pos].route.push(...traces[pos].route)
-                        traces[previous_pos].distance = (parseFloat(traces[previous_pos].distance) + parseFloat(traces[pos].distance)).toFixed(2)+" km"
-                        $('div#traces-list>.active>span.badge').text(traces[previous_pos].distance)
+                        traces[previous_pos].distance = traces[previous_pos].distance + traces[pos].distance
+                        $('div#traces-list>.active>span.badge').text(traces[previous_pos].distance.toFixed(2)+" km")
                         traces[previous_pos].polyline.remove()
                         traces[pos].polyline.remove()
                         traces[previous_pos].polyline = L.polyline(traces[previous_pos].route, {color: 'blue', opacity:0.8}).addTo(mymap);

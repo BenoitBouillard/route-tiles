@@ -225,3 +225,5 @@ type=="Ride" and date>="2021"
 - [X] [Improvement] Add line command arguments for port
 - [X] [Bug] Turnaround price don't find the better route
 - [X] [Improvement] Use tiles from statshunters.com
+- [X] [Improvement] Add filter on saved traces
+- [X] [Improvement] Display max square and cluster
