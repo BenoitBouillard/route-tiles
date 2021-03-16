@@ -567,8 +567,14 @@ $(document).ready(function(){
             load_marker("start");
             load_marker("end");
 
-            selected_tiles = JSON.parse(localStorage.getItem("selected_tiles")) || []
-            if (typeof selected_tiles=='string') { selected_tiles = selected_tiles.split(",");} // COMPATIBILITY
+            try {
+                selected_tiles = JSON.parse(localStorage.getItem("selected_tiles")) || []
+            } catch(e) {
+                if (typeof localStorage.getItem("selected_tiles")=='string') {
+                    selected_tiles = localStorage.getItem("selected_tiles").split(",");
+                } // COMPATIBILITY
+            }
+
             updateMapTiles();
 
             request_route();

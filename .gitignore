@@ -2,3 +2,4 @@ debug/*
 data/
 static/gpx
 static/icons
+venv/
