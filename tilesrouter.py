@@ -19,8 +19,7 @@ def latlons_to_gpx(latlons, filename, name):
     gpx = gpxpy.gpx.GPX()
 
     # Create first track in our GPX:
-    print(name, urllib.parse.quote(name))
-    gpx_track = gpxpy.gpx.GPXTrack(name=escape(name))
+    gpx_track = gpxpy.gpx.GPXTrack(name=name)
     gpx.tracks.append(gpx_track)
 
     # Create first segment in our GPX track:
@@ -31,7 +30,7 @@ def latlons_to_gpx(latlons, filename, name):
     for coord in latlons:
         gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(coord[0], coord[1]))
 
-    with open(filename, 'w') as hf:
+    with open(filename, 'w', encoding="utf8") as hf:
         hf.write(gpx.to_xml())
     return True
 
