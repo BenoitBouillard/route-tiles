@@ -21,7 +21,7 @@
   "msg-error_1000": "Autre erreur",
   "message-turnaround-cost": "Coût du demi tour",
   "message-cost-no": "aucun",
-  "msg-import-statshunters": "Importer",
+  "msg-import-statshunters": "Recharger depuis statshunters",
   "msg-import-statshunters-message": "Url de partage de",
   "msg-title-missing-tiles": "Import carrés manquants",
   "msg-section-routes": "Routes sauvegardées",

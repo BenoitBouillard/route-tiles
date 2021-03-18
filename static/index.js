@@ -243,6 +243,7 @@ $(document).ready(function(){
                         } else {
                             setMessageAlert('success');
                             $("#spinner-searching").hide();
+                            $("#button-download-route").show();
                             timeoutID = false;
                             actualTrace =  {distance: data.length, route: data.route, polyline: routePolyline};
                             $('button#addTrace').prop("disabled", false);
@@ -362,6 +363,7 @@ $(document).ready(function(){
             if (!('start' in markers)) return;
             if (!('end' in markers) && selected_tiles.length==0) return;
             setMessageAlert('info');
+            $("#button-download-route").hide();
             $("#message").text($.i18n("message-state-wait"));
             $("#length").text("");
 
@@ -373,12 +375,10 @@ $(document).ready(function(){
             var maxSquareLayer = false;
             var clusterLayer = false;
 
-            $( 'button#bImportStatsHunters' ).click(function ( e ) {
-                var data;
-
+            function statshunters_request(request) {
                 $.ajax({
                     type: 'GET',
-                    url: 'statshunters',
+                    url: request,
                     data: {url: $("#statshunters_url").val(), filter:$("#statshunters_filter").val()},
                     success: function ( data ) {
                         if (data.status=="OK") {
@@ -416,6 +416,15 @@ $(document).ready(function(){
                         }
                     }
                 });
+            }
+
+            $( 'button#bImportStatsHunters' ).click(function ( e ) {
+                statshunters_request('statshunters');
+                e.preventDefault();
+            });
+
+            $("#statshunters_filter").on("change",  function ( e ) {
+                statshunters_request('statshunters_filter');
                 e.preventDefault();
             });
 
@@ -430,7 +439,7 @@ $(document).ready(function(){
 
                 }*/
                 if ($("#statshunters_url").val()!="") {
-                    $( 'button#bImportStatsHunters' ).click();
+                    statshunters_request('statshunters_filter');
                 }
             }
             $("#bImportStatsHuntersReset").click(function() {
@@ -510,22 +519,26 @@ $(document).ready(function(){
 
         $("#gpxMessage").hide();
 
-        $("button#bGenerateGpx").on("click", function(e) {
-            $("#gpxMessage").hide();
-            $.getJSON({
-                url: 'generate_gpx',
-                data: { 'sessionId': sessionId, name : $("input#gpxFilename").val() },
-                success: function ( data ) {
-                    if (data.status!="OK") {
-                        $("#gpxMessage").text(data.message).show();
-                    }
-                    else {
-                       $("a#gpxDownload").attr("href", data.path);
-                       $("a#gpxDownload")[0].click();
-                    }
-                }
-            });
+        $("#button-download-route").on("click", function(e) {
+           file_name = prompt("File name", "")
+           if (file_name!=null) {
+               $("#gpxMessage").hide();
+               $.getJSON({
+                   url: 'generate_gpx',
+                   data: { 'sessionId': sessionId, name : file_name },
+                   success: function ( data ) {
+                       if (data.status!="OK") {
+                           $("#gpxMessage").text(data.message).show();
+                       }
+                       else {
+                          $("a#gpxDownload").attr("href", data.path);
+                          $("a#gpxDownload")[0].click();
+                       }
+                   }
+               });
+           }
         });
+
         $("button#bRevert").on("click", function(e) {
             m = markers["end"]
             markers["end"] = markers["start"]
@@ -678,7 +691,6 @@ $(document).ready(function(){
                         traces[previous_pos].polyline.setStyle({color:'green'});
                         $('div#traces-list>.active').removeClass('active');
                         $('#merge-trace').removeClass('btn-primary');
-                        $('#trace-button-group').hide();
                     } else {
                         traces[previous_pos].route.push(...traces[pos].route)
                         traces[previous_pos].distance = traces[previous_pos].distance + traces[pos].distance
@@ -694,23 +706,26 @@ $(document).ready(function(){
                 } else {
                     if (previous_pos>=0) {
                         traces[previous_pos].polyline.setStyle({color:'green'});
-                        $('div#traces-list>.active').removeClass('active');
+                        $('#trace-button-group').appendTo('#trace-menu-container')
+                        $('div#traces-list>.active').removeClass('active').popover('dispose');
                     }
                     if (pos != previous_pos) {
-                        $(this).addClass('active');
+                        $(this).addClass('active').popover({
+                            html: true,
+                            content:$('#trace-button-group'),
+                            trigger:"manual",
+                            placement: "top",
+                        }).popover('show');
                         //saved_traces[pos].setStyle({color:'blue'}).bringToFront();
                         traces[pos].polyline.setStyle({color:'blue'}).bringToFront();
-                        $('#trace-button-group').show();
-                    } else {
-                        $('#trace-button-group').hide();
                     }
                 }
             });
-            $('#trace-button-group').hide();
 
             $('#remove-trace').on('click', function(e) {
                 let pos = $('div#traces-list>.active').index();
                 if (pos>=0) {
+                    $('#trace-button-group').appendTo('#trace-menu-container');
                     traces[pos].polyline.remove();
                     traces.splice(pos, 1);
                     $('div#traces-list>.active').remove();

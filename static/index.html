@@ -119,82 +119,65 @@
 
 
 
-            <h3 aria-expanded="true" data-target="#section-route" data-toggle="collapse"><span data-i18n="msg-section-route">Itineraire</span></h3>
-
-            <div class="collapse show" id="section-route">
-
-                <div aria-label="Starting point" class="btn-group" role="group">
-                    <button class="btn btn-primary" data-i18n="message-start-button" id="bStart">Start
-                    </button>
-                    <!--input type="text" id="start" name="start" /-->
-                    <button class="btn btn-danger" id="bClearStart">
-                        <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
-                             xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                            <path clip-rule="evenodd"
-                                  d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
-                                  fill-rule="evenodd"/>
-                        </svg>
-                    </button>
-                </div>
-                <button class="btn btn-primary" id="bRevert">
-                    <svg class="bi bi-arrow-left-right" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
+            <div aria-label="Starting point" class="btn-group" role="group">
+                <button class="btn btn-primary" data-i18n="message-start-button" id="bStart">Start
+                </button>
+                <!--input type="text" id="start" name="start" /-->
+                <button class="btn btn-danger" id="bClearStart">
+                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
                          xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
                         <path clip-rule="evenodd"
-                              d="M12.146 9.646a.5.5 0 01.708 0l3 3a.5.5 0 010 .708l-3 3a.5.5 0 01-.708-.708L14.793 13l-2.647-2.646a.5.5 0 010-.708z"
-                              fill-rule="evenodd"/>
-                        <path clip-rule="evenodd"
-                              d="M4 13a.5.5 0 01.5-.5H15a.5.5 0 010 1H4.5A.5.5 0 014 13zm3.854-9.354a.5.5 0 010 .708L5.207 7l2.647 2.646a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 01.708 0z"
-                              fill-rule="evenodd"/>
-                        <path clip-rule="evenodd" d="M4.5 7a.5.5 0 01.5-.5h10.5a.5.5 0 010 1H5a.5.5 0 01-.5-.5z"
+                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
                               fill-rule="evenodd"/>
                     </svg>
                 </button>
-                <div aria-label="Ending point" class="btn-group" role="group">
-                    <button class="btn btn-primary" data-i18n="message-end-button" id="bEnd">End</button>
-                    <!--input type="text" id="end" name="end" /-->
-                    <button class="btn btn-danger" id="bClearEnd">
-                        <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
-                             xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                            <path clip-rule="evenodd"
-                                  d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
-                                  fill-rule="evenodd"/>
-                        </svg>
-                    </button>
-                </div>
-
-                <div>
-
-                    <div aria-label="menu" class="" id="run-button-group" role="group">
-                        <!--<button type="button" class="btn btn-success" id="route">Chercher</button>-->
-                        <button class="btn btn-warning" data-i18n="message-clear-tiles-button" id="clear-tiles"
-                                type="button">Clear tiles
-                        </button>
-                        <!--<button type="button" class="btn btn-info" id="export-tiles">Exporter les carrés en KML</button>-->
-                    </div>
-
-                </div>
-
-                <h6 data-i18n="msg-title-download">Téléchargement</h6>
-                <div class="form-group row">
-                    <label for="gpxFilename" class="col-form-label col-sm-4" data-i18n="msg-download-filename">Nom du fichier</label>
-                    <input id="gpxFilename" name="gpxFilename" type="text" class="form-control col-sm-6"/>
-                    <div class="col-sm-2">
-                        <button class="btn btn-primary" id="bGenerateGpx">
-                            <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round"
-                                 stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
-                                 xmlns="http://www.w3.org/2000/svg">
-                                <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <a class="d-none btn btn-info" download href="" id="gpxDownload">Télécharger</a>
-                </div>
-
             </div>
+            <button class="btn btn-primary" id="bRevert">
+                <svg class="bi bi-arrow-left-right" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path clip-rule="evenodd"
+                          d="M12.146 9.646a.5.5 0 01.708 0l3 3a.5.5 0 010 .708l-3 3a.5.5 0 01-.708-.708L14.793 13l-2.647-2.646a.5.5 0 010-.708z"
+                          fill-rule="evenodd"/>
+                    <path clip-rule="evenodd"
+                          d="M4 13a.5.5 0 01.5-.5H15a.5.5 0 010 1H4.5A.5.5 0 014 13zm3.854-9.354a.5.5 0 010 .708L5.207 7l2.647 2.646a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 01.708 0z"
+                          fill-rule="evenodd"/>
+                    <path clip-rule="evenodd" d="M4.5 7a.5.5 0 01.5-.5h10.5a.5.5 0 010 1H5a.5.5 0 01-.5-.5z"
+                          fill-rule="evenodd"/>
+                </svg>
+            </button>
+            <div aria-label="Ending point" class="btn-group" role="group">
+                <button class="btn btn-primary" data-i18n="message-end-button" id="bEnd">End</button>
+                <!--input type="text" id="end" name="end" /-->
+                <button class="btn btn-danger" id="bClearEnd">
+                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
+                        <path clip-rule="evenodd"
+                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
+                              fill-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+            <div aria-label="Clear tiles" class="btn-group" id="run-button-group" role="group">
+                <!--<button type="button" class="btn btn-success" id="route">Chercher</button>-->
+                <button class="btn btn-warning" data-i18n="message-clear-tiles-button" id="clear-tiles"
+                        type="button">Clear tiles
+                </button>
+                <!--<button type="button" class="btn btn-info" id="export-tiles">Exporter les carrés en KML</button>-->
+            </div>
+            <a class="d-none btn btn-info" download href="" id="gpxDownload">Télécharger</a>
+
+            <p></p>
 
             <div class="alert alert-light" id="progress-message">
+                <button class="btn btn-primary" id="button-download-route">
+                    <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round"
+                         stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30"/>
+                    </svg>
+                </button>
                 <div id="spinner-searching" class="spinner-border spinner-border-sm text-primary" role="status" style="display:none;">
                     <span class="sr-only">Searching...</span>
                 </div>
@@ -228,10 +211,17 @@
                     </div>
                 </div>
 
-                <div style="height:2.4em;">
+                <div class="form-group row" id="filter-form">
                     <b>Routes:</b>
-                    <span>
-                    <div aria-label="menu" class="btn-group float-right" id="trace-button-group" role="group">
+                    <div class="custom-control custom-switch col-form-label">
+                        <input type="checkbox" class="custom-control-input config-storage" id="filter-activated">
+                        <label class="custom-control-label" for="filter-activated" data-i18n="msg-input-filter">Filter</label>
+                    </div>
+                    <input id="filterField" class="form-control col-sm-6 config-storage" name="filterField" type="text"/>
+                </div>
+
+                <span id="trace-menu-container" hidden>
+                    <div aria-label="menu" class="btn-group" id="trace-button-group" role="group">
 
                         <button class="btn btn-outline-info action_on_trace" id="rename-trace" type="button" title="rename" data-i18n="[title]msg-button-rename">
                             <svg class="bi bi-type" width="1em" height="1em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -265,16 +255,8 @@
                             </svg>
                         </button>
                     </div>
-                        </span>
-                </div>
+                </span>
 
-                <div class="form-group row" id="filter-form">
-                    <div class="custom-control custom-switch col-form-label">
-                        <input type="checkbox" class="custom-control-input config-storage" id="filter-activated">
-                        <label class="custom-control-label" for="filter-activated" data-i18n="msg-input-filter">Filter</label>
-                    </div>
-                    <input id="filterField" class="form-control col-sm-6 config-storage" name="filterField" type="text"/>
-                </div>
 
                 <div class="list-group" id="traces-list">
                 </div>
@@ -296,10 +278,6 @@
                     <a href="https://statshunters.com/share">statshunters.com</a>
                 </div>
                 <input id="statshunters_url" class="form-control config-storage" name="statshunters_url" type="text"/>
-                <div>
-                    <span data-i18n="msg-import-statshunters-filter-message">Filter to apply on activities</span>
-                </div>
-                <input id="statshunters_filter" class="form-control config-storage" name="statshunters_filter" type="text"/>
                 <button class="btn btn-primary" id="bImportStatsHunters"
                         data-i18n="msg-import-statshunters"></button>
                 <button class="btn btn-outline-danger" id="bImportStatsHuntersReset">
@@ -311,6 +289,10 @@
                               fill-rule="evenodd"/>
                     </svg>
                 </button>
+                <div>
+                    <span data-i18n="msg-import-statshunters-filter-message">Filter to apply on activities</span>
+                </div>
+                <input id="statshunters_filter" class="form-control config-storage" name="statshunters_filter" type="text"/>
 
                 <div class="form-check">
                   <input class="form-check-input config-storage" type="checkbox" value="" id="showMaxSquare">

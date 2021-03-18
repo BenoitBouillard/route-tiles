@@ -118,8 +118,9 @@ Data are stored locally by the browser. If you refresh the page
 
 It is possible to choose from several modes:
 
-- **Route**: it will use only asphalt: road, cycle path if asphalt. 
+- **Roadcycle**: it will use only asphalt: road, cycle path if asphalt. 
              Avoid major road
+- **Road by foot**: it will use only asphalt: road, steps and path if asphalt. Allow prohibited direction.
 - **Chemin**: use any path
 - **Trail**: use path preferably
 
@@ -169,10 +170,8 @@ You can remove all marked tiles with "Clear tiles" button.
 #### Download route
 
 When the route is finished ("complete" status), 
-it is possible to directly download it. 
+it is possible to directly download it: Click on download icon blue button, and enter a file name in input field.
 
-You can enter a name on the field just below the routing status and click
-on the blue download icon button.
 Name is optional. If none, datetime will be use for the file name and gpx name.
 
 #### Manage route
@@ -199,12 +198,18 @@ StatsHunters.com offer the possibility to create a link to share your personal p
 You have to create sharelink on [https://statshunters.com/share](https://statshunters.com/share) page and copy paste the full link
  (something like https://www.statshunters.com/share/abcdef123456) on the page and import.
 
-It is possible to add filter on statshunters. Some examples:
+As it take some time to load ativities from statshunters server, they are saved in cache to accelerate the page loading and filter computation.
+To load new activities, you have to click "Reload" button.
 
-```
-type=="Run" and '#fromHome' in name and date>"2021"
-type=="Ride" and date>="2021"
-```
+It is possible to add filter on statshunters. 
+It should be formated as python expression and usefull data from activities are:
+- name
+- date
+- type (Run, Ride, ...)
+
+Some examples:
+- Only Ride of 2021: `type=="Ride" and date>="2021"`
+- Only 2021 Run with '#fromHome' in name : `type=="Run" and '#fromHome' in name and date>"2021"`
 
 ## TODO list
 

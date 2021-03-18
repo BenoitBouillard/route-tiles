@@ -16,7 +16,7 @@ from pprint import pprint
 from urllib import parse
 
 from tilesrouter import RouteServer, latlons_to_gpx, tiles_to_kml
-from statshunters import get_statshunters_activities, tiles_from_activities, compute_max_square, compute_cluster
+from statshunters import get_statshunters_activities, tiles_from_activities, compute_max_square, compute_cluster, statshunters_path
 
 
 PORT = 8000
@@ -107,16 +107,36 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
             sh_filter = None
 
         data_folder = Path(__file__).parent.joinpath('data')
-        data_folder.mkdir(exist_ok=True)
         folder = get_statshunters_activities(url, data_folder)
+
+        tiles = tiles_from_activities(folder, filter_str=sh_filter)
+
+        kml_max_square = compute_max_square(tiles)
+        kml_cluster = compute_cluster(tiles)
+
+        self.wfile.write(json.dumps({'status': 'OK',
+                                     'tiles': list(tiles),
+                                     'maxSquare': kml_max_square,
+                                     'cluster': kml_cluster}).encode('utf-8'))
+
+
+    def do_GET_statshunters_filter(self):
+        parsed_path = parse.urlparse(self.path)
+        qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
+        url = qs['url'][0]
+        if 'filter' in qs:
+            sh_filter = qs['filter'][0]
+        else:
+            sh_filter = None
+
+        data_folder = Path(__file__).parent.joinpath('data')
+        folder = statshunters_path(url, data_folder)
 
         tiles = tiles_from_activities(folder, filter_str=sh_filter)
 
         kml_max_square = compute_max_square(tiles)
 
         kml_cluster = compute_cluster(tiles)
-
-
 
         self.wfile.write(json.dumps({'status': 'OK',
                                      'tiles': list(tiles),

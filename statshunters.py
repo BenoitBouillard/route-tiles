@@ -15,12 +15,16 @@ def myurlretrieve(url, filename=None, reporthook=None, data=None):
     return urlretrieve(url, filename, reporthook, data)
 
 
-def get_statshunters_activities(sharelink_url, folder, full=False):
+def statshunters_path(sharelink_url, folder):
     index = sharelink_url.split('/')[-1]
-    page = 1
-
     activities_path = Path(folder).joinpath(index)
-    activities_path.mkdir(exist_ok=True)
+    activities_path.mkdir(parents=True, exist_ok=True)
+    return activities_path
+
+
+def get_statshunters_activities(sharelink_url, folder, full=False):
+    activities_path = statshunters_path(sharelink_url, folder)
+    page = 1
 
     if not full:
         while activities_path.joinpath("activities_{}.json".format(page + 2)).exists():

@@ -21,7 +21,7 @@
   "msg-error_1000": "Other error",
   "message-turnaround-cost": "Turnaround cost",
   "message-cost-no": "no cost",
-  "msg-import-statshunters": "Import",
+  "msg-import-statshunters": "Reload from statshunters",
   "msg-import-statshunters-message": "Sharelink from",
   "msg-title-missing-tiles": "Missing tiles import",
   "msg-section-routes": "Saved routes",
