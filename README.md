@@ -187,7 +187,10 @@ It is possible also to merge routes with the "+" button:
 1. select the second route to add.
    It will add the second route to the first one and remove the second.
    
-   
+#### Filter displayed routes
+It is possible to activate filter for routes.
+- `^((?!-SW|-SE|-NE|-NW|Vélo).)*$`
+
 #### Missing tiles import
 It is possible to display missing tiles on the map to facilitate the tiles selection for a route.
 

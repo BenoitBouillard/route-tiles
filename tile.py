@@ -1,4 +1,5 @@
 from shapely.geometry import Point, LineString, LinearRing, Polygon
+from fastkml import kml, styles
 
 from utils import *
 
@@ -77,15 +78,6 @@ class ZoneWithEntries(object):
             self._entryNodesId = [n.nodeId for n in self.entryNodeId]
         return self._entryNodesId
 
-
-# class Point(ZoneWithEntries):
-# def __init__(self, name, coord):
-# super().__init__(name=name)
-# self.name = name
-# self.entryNodeId.append(coord)
-# @property
-# def coord(self):
-# return self.entryNodeId[0]
 
 class Tile(ZoneWithEntries):
     def __init__(self, uid, y=None):
@@ -241,3 +233,32 @@ class Tile(ZoneWithEntries):
 
         print("Tile {} has {} entry nodes".format(self.name or self.uid, len(self.entryNodeId)))
         return
+
+
+def tiles_to_kml(tiles, filename, name):
+    # Create the root KML object
+    k = kml.KML()
+    ns = '{http://www.opengis.net/kml/2.2}'
+
+    s = styles.Style(id="s", styles=[styles.LineStyle(color="ff0000ff", width=1)])
+
+    # Create a KML Document and add it to the KML root object
+    d = kml.Document(ns, name=name, styles=[s])
+    k.append(d)
+
+    # Create a KML Folder and add it to the Document
+    f = kml.Folder(ns, name=name)
+    d.append(f)
+
+    # Create a Placemark with a simple polygon geometry and add it to the
+    # second folder of the Document
+    for tile_id in tiles:
+        tile = Tile(tile_id)
+        p = kml.Placemark(ns, tile_id, styleUrl="#s")
+        p.geometry = tile.line_string_lon_lat
+        f.append(p)
+
+    print(k.to_string(prettyprint=True))
+    with open(filename, 'w') as hf:
+        hf.write(k.to_string(prettyprint=True))
+    return True

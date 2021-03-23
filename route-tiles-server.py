@@ -15,7 +15,8 @@ from pathlib import Path
 from pprint import pprint
 from urllib import parse
 
-from tilesrouter import RouteServer, latlons_to_gpx, tiles_to_kml
+from tilesrouter import RouteServer, latlons_to_gpx
+from tile import tiles_to_kml
 from statshunters import get_statshunters_activities, tiles_from_activities, compute_max_square, compute_cluster, statshunters_path
 
 

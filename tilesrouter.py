@@ -6,14 +6,11 @@ from pathlib import Path
 
 import gpxpy
 import gpxpy.gpx
-from fastkml import kml, styles
 from shapely.geometry import Point, Polygon
 
 from pyroutelib3 import Datastore
-from tile import Tile, CoordDict, coord_from_tile
+from tile import Tile, CoordDict
 from utils import *
-import urllib
-from xml.sax.saxutils import escape
 
 def latlons_to_gpx(latlons, filename, name):
     gpx = gpxpy.gpx.GPX()
@@ -32,35 +29,6 @@ def latlons_to_gpx(latlons, filename, name):
 
     with open(filename, 'w', encoding="utf8") as hf:
         hf.write(gpx.to_xml())
-    return True
-
-
-def tiles_to_kml(tiles, filename, name):
-    # Create the root KML object
-    k = kml.KML()
-    ns = '{http://www.opengis.net/kml/2.2}'
-
-    s = styles.Style(id="s", styles=[styles.LineStyle(color="ff0000ff", width=1)])
-
-    # Create a KML Document and add it to the KML root object
-    d = kml.Document(ns, name=name, styles=[s])
-    k.append(d)
-
-    # Create a KML Folder and add it to the Document
-    f = kml.Folder(ns, name=name)
-    d.append(f)
-
-    # Create a Placemark with a simple polygon geometry and add it to the
-    # second folder of the Document
-    for tile_id in tiles:
-        tile = Tile(tile_id)
-        p = kml.Placemark(ns, tile_id, styleUrl="#s")
-        p.geometry = tile.line_string_lon_lat
-        f.append(p)
-
-    print(k.to_string(prettyprint=True))
-    with open(filename, 'w') as hf:
-        hf.write(k.to_string(prettyprint=True))
     return True
 
 
@@ -685,7 +653,7 @@ if __name__ == '__main__':
 
     pprint(rs.start_route('roadcycle', [49.22348337019613,1.0639143922640362],
                         [49.223553460378696,1.0666931370750057],
-                        ['8240_5610'], config={'turnaround_cost':1.5}, thread=False)[2].route)
+                        ['8240_5610'], config={'turnaround_cost':1.5, 'loop_cost_factor': 1.0}, thread=False)[2].route)
 
     # print(rs.start_route([49.250775603162886,1.4452171325683596],
     #                     [49.250775603162886,1.4452171325683596],

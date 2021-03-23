@@ -76,52 +76,34 @@ def filter_asphalt(t):
 
 
 TYPES = {
-    "car": {
-        "weights": {"motorway": 10, "trunk": 10, "primary": 2, "secondary": 1.5, "tertiary": 1,
-                    "unclassified": 1, "residential": 0.7, "track": 0.5, "service": 0.5},
-        "access": ["access", "vehicle", "motor_vehicle", "motorcar"]},
-    "bus": {
-        "weights": {"motorway": 10, "trunk": 10, "primary": 2, "secondary": 1.5, "tertiary": 1,
-                    "unclassified": 1, "residential": 0.8, "track": 0.3, "service": 0.9},
-        "access": ["access", "vehicle", "motor_vehicle", "psv", "bus"]},
     "roadcycle": {
         "weights": {"primary": weight_primary_roadcycle, "secondary": 1, "tertiary": 1,
                     "unclassified": 0.9, "residential": 0.9, "living_street": 0.9, "cycleway": 0.9,
-                    "footway": filter_asphalt, "path": filter_asphalt},
-        "access": ["access", "vehicle", "bicycle"]},
-    "cycle": {
-        "weights": {"trunk": 0.05, "primary": weight_primary_roadcycle, "secondary": 0.9, "tertiary": 1,
-                    "unclassified": 1, "cycleway": 2, "residential": 2.5, "living_street": 2, "track": 1,
-                    "service": 1, "bridleway": 0.8, "footway": 0.8, "steps": 0.5, "path": 1},
-        "access": ["access", "vehicle", "bicycle"]},
-    "horse": {
-        "weights": {"primary": 0.05, "secondary": 0.15, "tertiary": 0.3, "unclassified": 1,
-                    "residential": 1, "track": 1.5, "service": 1, "bridleway": 5, "path": 1.5},
-        "access": ["access", "horse"]},
+                    "footway": lambda t:filter_asphalt(t)*0.85, "path": lambda t:filter_asphalt(t)*0.85},
+        "access": ["access", "vehicle", "bicycle"],
+        "transport": "bicycle"
+    },
     "road_foot": {
         "weights": {"trunk": 0.3, "primary": weight_primary_roadcycle, "secondary": 1, "tertiary": 1,
                     "unclassified": 1, "residential": 1, "living_street": 1, "track": 0.1, "service": 1,
                     "bridleway": 0.1, "footway": filter_asphalt, "path": filter_asphalt, "steps": 1},
         "access": ["access", "foot"],
         "transport": "foot"
-
     },
     "foot": {
-        "weights": {"trunk": 0.3, "primary": 0.6, "secondary": 0.9, "tertiary": 1,
+        "weights": {"trunk": 0.3, "primary": weight_primary_roadcycle, "secondary": 0.9, "tertiary": 1,
                     "unclassified": 1, "residential": 1, "living_street": 1, "track": 1, "service": 1,
-                    "bridleway": 1, "footway": 1, "path": 1, "steps": 1},
-        "access": ["access", "foot"]},
+                    "bridleway": 1, "footway": 1, "cycleway": 0.9, "path": 1, "steps": 1},
+        "access": ["access", "foot"],
+        "transport": "foot"
+    },
     "trail": {
         "weights": {"trunk": 0.1, "primary": 0.3, "secondary": 0.6, "tertiary": 0.7,
                     "unclassified": 0.7, "residential": 0.8, "living_street": 0.8, "track": 0.9, "service": 0.8,
-                    "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1},
-        "access": ["access", "foot"]},
-    "tram": {
-        "weights": {"tram": 1, "light_rail": 1},
-        "access": ["access"]},
-    "train": {
-        "weights": {"rail": 1, "light_rail": 1, "subway": 1, "narrow_guage": 1},
-        "access": ["access"]}
+                    "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1, "cycleway": 0.85},
+        "access": ["access", "foot"],
+        "transport": "foot"
+    }
 }
 
 ZOOM_LEVEL = 15
@@ -227,8 +209,7 @@ class Datastore:
             self.type = transport
 
         else:
-            self.transport = TYPES[transport].get('transport', transport) if transport not in ["cycle",
-                                                            "roadcycle"] else "bicycle"  # Osm uses bicycle in tags
+            self.transport = TYPES[transport].get('transport')
             self.type = TYPES[transport].copy()
 
         # Load local file if it was passed
