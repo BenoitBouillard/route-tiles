@@ -5,6 +5,8 @@
   "message-mode-roadfoot" : "Route à pied",
   "message-mode-foot" : "Chemin",
   "message-mode-trail" : "Trail",
+  "message-draw-circle" : "Afficher cercle",
+  "message-circle-no" : "Non",
   "message-start-button": "Départ",
   "message-end-button": "Arrivée",
   "message-clear-tiles-button": "Effacer les carrés",

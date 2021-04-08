@@ -5,6 +5,8 @@
   "message-mode-roadfoot" : "Road by foot",
   "message-mode-foot" : "Foot",
   "message-mode-trail" : "Trail",
+  "message-draw-circle" : "Draw circle",
+  "message-circle-no" : "No",
   "message-start-button": "Start",
   "message-end-button": "End",
   "message-clear-tiles-button": "Clear tiles",

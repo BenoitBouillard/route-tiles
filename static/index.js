@@ -548,7 +548,30 @@ $(document).ready(function(){
             latlng = markers["end"].getLatLng();
             localStorage.setItem("end", latlng.lat+","+latlng.lng);
             request_route();
+            update_circle();
         });
+
+        var circle_layer = false;
+
+        function update_circle() {
+            if (circle_layer) {
+                if (($('#draw-circle').find(':selected').data('value')>0) && ("start" in markers))
+                {
+                    circle_layer.setRadius($('#draw-circle').find(':selected').data('value'));
+                    circle_layer.setLatLng(markers["start"].getLatLng());
+                } else {
+                    circle_layer.remove();
+                    circle_layer = false;
+
+                }
+            } else if (($('#draw-circle').find(':selected').data('value')>0) && ("start" in markers)) {
+                circle_layer = L.circle(markers["start"].getLatLng(), {radius: $('#draw-circle').find(':selected').data('value'), fill: false}).addTo(mymap);
+            }
+        }
+
+        $('#draw-circle').on("change", function() {
+            update_circle();
+        })
 
         function add_marker(name, latlng) {
             if ((name in markers) && markers[name]) {
@@ -564,6 +587,7 @@ $(document).ready(function(){
         mymap.on("click", function (e) {
             if (selectLoc==false) return;
             add_marker(selectLoc, e.latlng);
+            update_circle();
             localStorage.setItem(selectLoc, e.latlng.lat+","+e.latlng.lng);
             selectLoc = false;
             request_route();
@@ -579,6 +603,7 @@ $(document).ready(function(){
             }
             load_marker("start");
             load_marker("end");
+            update_circle();
 
             try {
                 selected_tiles = JSON.parse(localStorage.getItem("selected_tiles")) || []
