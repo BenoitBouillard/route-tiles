@@ -73,7 +73,7 @@ ERR_ABORT_REQUEST = 2
 ERR_ROUTE_ERROR = 1000
 
 class MyRouter(object):
-    def __init__(self, router, start, end, tiles_ids, config):
+    def __init__(self, router, start, end, tiles_ids, ways_points, config):
         self.router = router
         self._min_route = None
         self.min_length = None
@@ -83,6 +83,7 @@ class MyRouter(object):
         self._complete = False
         self.start = start
         self.end = end
+        self.waypoints = ways_points
         self.tiles_ids = tiles_ids
         self.progress = 100.0
         self.config = config
@@ -122,9 +123,13 @@ class MyRouter(object):
                 self._complete = True
                 return False
 
+        for wp in self.waypoints:
+            selected_tiles.append(wp)
+
         debug_export_tiles(selected_tiles)
         status, r = self.do_route_with_crossing_zone(self.start.nodeId, self.end.nodeId,
-                                                     frozenset(selected_tiles), self.config)
+                                                     frozenset(selected_tiles),
+                                                     self.config)
         if status != "success":
             self.error_code = ERR_ROUTE_ERROR
             self.error_args = ""
@@ -525,7 +530,7 @@ class MyRouter(object):
                 if considered_node in zone.entry_nodes_id:
                     # Enter in a new zone
                     not_visited_zones = not_visited_zones - {zone}
-                    if config.get('turnaround_cost', 0)>0:
+                    if config.get('turnaround_cost', 0)>0 and len(zone.entry_nodes_id)>1:
                         is_enter_new_tile = True
                         routes_across_tile = self.explore_routes_tile_exit(considered_node, zone, next_item['mandatoryNodes'])
                         for route in routes_across_tile:
@@ -557,7 +562,7 @@ class MyRouter(object):
             # Found the end node - success
             if considered_node == end:
                 if len(not_visited_zones) == 0:
-                    #_export_queue(next_item)
+                    _export_queue(next_item)
                     print(next_item)
                     return "success", [int(i) for i in next_item["nodes"].split(",")]
 
@@ -597,8 +602,13 @@ class RouteServer(object):
         self.mode = None
         self.thread = None
 
-    def start_route(self, mode, start_loc, end_loc, tiles, config={}, thread=True):
+    def start_route(self, mode, start_loc, end_loc, tiles, waypoints=None, config=None, thread=True):
+        if config is None:
+            config = {}
+        if waypoints is None:
+            waypoints = {}
         print(tiles)
+        print(waypoints)
 
         if thread and self.myRouter and not self.myRouter.is_complete:
             print("Abord previous route...")
@@ -612,8 +622,11 @@ class RouteServer(object):
         coord_dict = CoordDict(self.router)
         start_point = coord_dict.get(*start_loc)
         end_point = coord_dict.get(*end_loc)
+        ways_points = [coord_dict.get(*wp) for wp in waypoints]
+        print("Ways_points")
+        print(ways_points)
 
-        self.myRouter = MyRouter(self.router, start_point, end_point, tiles, config)
+        self.myRouter = MyRouter(self.router, start_point, end_point, tiles, ways_points, config)
         if thread:
             self.thread = threading.Thread(target=self.myRouter.run)
             # Background thread will finish with the main program
@@ -651,9 +664,11 @@ if __name__ == '__main__':
     rs = RouteServer()
     # print(computeMissingKml(open("missing_tiles.kml", "rb")))
 
-    pprint(rs.start_route('roadcycle', [49.22348337019613,1.0639143922640362],
-                        [49.223553460378696,1.0666931370750057],
-                        ['8240_5610'], config={'turnaround_cost':1.5, 'loop_cost_factor': 1.0}, thread=False)[2].route)
+    pprint(rs.start_route('roadcycle', [49.1605622003275, 1.336576378098009],
+                          [49.213220722909014, 1.3079838625541165],
+                          [],#['8240_5610'],
+                          waypoints=[(49.213220722909014, 1.3079838625541165)],
+                          config={'turnaround_cost':0.0, 'loop_cost_factor': 0.0}, thread=False)[2].route)
 
     # print(rs.start_route([49.250775603162886,1.4452171325683596],
     #                     [49.250775603162886,1.4452171325683596],

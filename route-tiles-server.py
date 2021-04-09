@@ -147,6 +147,7 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
     def do_GET_start_route(self):
         parsed_path = parse.urlparse(self.path)
         qs = parse.parse_qs(parsed_path.query, keep_blank_values=True)
+        pprint(qs)
         start = [float(qs['start[]'][0]), float(qs['start[]'][1])]
         end = [float(qs['end[]'][0]), float(qs['end[]'][1])]
         mode = qs['mode'][0]
@@ -159,9 +160,17 @@ class RouteHttpServer(http.server.SimpleHTTPRequestHandler):
         else:
             tiles = []
 
+        waypoints = []
+        if 'waypoints[0][]' in qs:
+            wpi = 0
+            while 'waypoints[{}][]'.format(wpi) in qs:
+                waypoints.append([float(v) for v in qs['waypoints[{}][]'.format(wpi)]])
+                wpi += 1
+            pprint(waypoints)
+
         answer = {'sessionId': self.sessionId}
 
-        router, message, info = self.session.routeServer.start_route(mode, start, end, tiles, config={'turnaround_cost':turnaround_cost})
+        router, message, info = self.session.routeServer.start_route(mode, start, end, tiles, waypoints=waypoints, config={'turnaround_cost':turnaround_cost})
 
         if router:
             answer['status'] = "OK"

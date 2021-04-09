@@ -18,6 +18,7 @@
   "message-state-ask-route": "Demande d'itinéraire...",
   "message-state-wait": "Attente...",
   "message-state-fail": "ERREUR",
+  "message-add-waypoint": "Ajout waypoint",
   "msg-error_1": "Pas de point d'entrée pour le carré",
   "msg-error_2": "Demande d'arrêt",
   "msg-error_1000": "Autre erreur",

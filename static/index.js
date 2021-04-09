@@ -323,6 +323,10 @@ $(document).ready(function(){
             else {
                 data['end'] = data['start'];
             }
+            data['waypoints'] = []
+            waypoints.forEach(function(wp) {
+                data['waypoints'].push(latlonToQuery(wp.getLatLng()))
+            });
             data['tiles'] = selected_tiles
             data['mode'] = $('#mode-selection').find(':selected').data('value')
 
@@ -485,12 +489,39 @@ $(document).ready(function(){
 
         var selectLoc = false;
         var markers = {};
+        var waypoints = [];
+
+        var markersIcons = {
+          start: L.ExtraMarkers.icon({
+             icon: 'fa-play-circle',
+             markerColor: 'green',
+             shape: 'circle',
+             prefix: 'fas'
+         }),
+          end: L.ExtraMarkers.icon({
+             icon: 'fa-stop-circle',
+             markerColor: 'red',
+             shape: 'circle',
+             prefix: 'fas'
+         }),
+          waypoint: L.ExtraMarkers.icon({
+             icon: 'fa-dot-circle',
+             markerColor: 'cyan',
+             shape: 'circle',
+             prefix: 'fas'
+         }),
+
+        }
 
         $("button#bStart").on("click", function(e) {
             selectLoc = "start";
         });
         $("button#bEnd").on("click", function(e) {
             selectLoc = "end";
+        });
+
+        $("button#addWaypoint").on("click", function(e) {
+            selectLoc = "waypoint";
         });
 
         $("button#bClearStart").on("click", function(e) {
@@ -514,6 +545,13 @@ $(document).ready(function(){
             selected_tiles = [];
             localStorage.setItem("selected_tiles", JSON.stringify(selected_tiles));
             updateMapTiles();
+
+            waypoints.forEach(function(wp) {
+                wp.remove();
+            });
+            waypoints = [];
+            store_waypoints();
+
             request_route();
     });
 
@@ -540,9 +578,10 @@ $(document).ready(function(){
         });
 
         $("button#bRevert").on("click", function(e) {
-            m = markers["end"]
-            markers["end"] = markers["start"]
-            markers["start"] = m
+            let startPos =  markers["start"].getLatLng();
+            let endPos =  markers["end"].getLatLng();
+            markers["start"].setLatLng(endPos);
+            markers["end"].setLatLng(startPos);
             let latlng = markers["start"].getLatLng();
             localStorage.setItem("start", latlng.lat+","+latlng.lng);
             latlng = markers["end"].getLatLng();
@@ -577,18 +616,50 @@ $(document).ready(function(){
             if ((name in markers) && markers[name]) {
                 markers[name].setLatLng(latlng);
             } else {
-                markers[name] =  L.marker(latlng, {draggable: true, title: name}).addTo(mymap).on("dragend", function(e){
+                markers[name] =  L.marker(latlng, {draggable: true, title: name, icon: markersIcons[name]}).addTo(mymap).on("dragend", function(e){
                     localStorage.setItem(this.options.title, this.getLatLng().lat+","+this.getLatLng().lng);
                     request_route();
                 });
             }
         }
 
+        function store_waypoints() {
+            wps = []
+            waypoints.forEach(function(wp) {
+                wps.push(latlonToQuery(wp.getLatLng())  )
+            })
+            localStorage.setItem("waypoints", JSON.stringify(wps))
+        }
+
+
+        function add_waypoint(latlng) {
+            waypoints.push(L.marker(latlng, {draggable: true, title: "waypoint", icon: markersIcons['waypoint']}).addTo(mymap).on("dragend", function(e){
+                //localStorage.setItem(this.options.title, this.getLatLng().lat+","+this.getLatLng().lng);
+                request_route();
+                store_waypoints();
+            }).on("click", function(e) {
+                e.target.remove();
+                waypoints.splice(waypoints.indexOf(e.target), 1);
+                request_route();
+                store_waypoints();
+            }));
+            store_waypoints();
+        }
+
+        (JSON.parse(localStorage.getItem("waypoints")) || []).forEach(function(wp){
+            add_waypoint(wp)
+        })
+
+
         mymap.on("click", function (e) {
             if (selectLoc==false) return;
-            add_marker(selectLoc, e.latlng);
-            update_circle();
-            localStorage.setItem(selectLoc, e.latlng.lat+","+e.latlng.lng);
+            if (selectLoc=="waypoint") {
+                add_waypoint(e.latlng);
+            } else {
+                add_marker(selectLoc, e.latlng);
+                update_circle();
+                localStorage.setItem(selectLoc, e.latlng.lat+","+e.latlng.lng);
+            }
             selectLoc = false;
             request_route();
         });

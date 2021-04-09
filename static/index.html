@@ -16,6 +16,8 @@
 
     <link crossorigin="anonymous" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
+    <link rel="stylesheet" href="leaflet-extra-markers/css/leaflet.extra-markers.min.css">
+
     <script crossorigin=""
             integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
             src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
@@ -30,6 +32,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bs-custom-file-input/dist/bs-custom-file-input.min.js"></script>
 
     <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
+
+    <script defer src="https://use.fontawesome.com/releases/v5.12.0/js/all.js"></script>
+
+    <script src="leaflet-extra-markers/js/leaflet.extra-markers.min.js"></script>
 
     <script src="index.js"></script>
 
@@ -134,41 +140,22 @@
                 </button>
                 <!--input type="text" id="start" name="start" /-->
                 <button class="btn btn-danger" id="bClearStart">
-                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
-                         xmlns="http://www.w3.org/2000/svg">
-                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                        <path clip-rule="evenodd"
-                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
-                              fill-rule="evenodd"/>
-                    </svg>
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
             <button class="btn btn-primary" id="bRevert">
-                <svg class="bi bi-arrow-left-right" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
-                     xmlns="http://www.w3.org/2000/svg">
-                    <path clip-rule="evenodd"
-                          d="M12.146 9.646a.5.5 0 01.708 0l3 3a.5.5 0 010 .708l-3 3a.5.5 0 01-.708-.708L14.793 13l-2.647-2.646a.5.5 0 010-.708z"
-                          fill-rule="evenodd"/>
-                    <path clip-rule="evenodd"
-                          d="M4 13a.5.5 0 01.5-.5H15a.5.5 0 010 1H4.5A.5.5 0 014 13zm3.854-9.354a.5.5 0 010 .708L5.207 7l2.647 2.646a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 01.708 0z"
-                          fill-rule="evenodd"/>
-                    <path clip-rule="evenodd" d="M4.5 7a.5.5 0 01.5-.5h10.5a.5.5 0 010 1H5a.5.5 0 01-.5-.5z"
-                          fill-rule="evenodd"/>
-                </svg>
+                <i class="fas fa-exchange-alt"></i>
             </button>
             <div aria-label="Ending point" class="btn-group" role="group">
                 <button class="btn btn-primary" data-i18n="message-end-button" id="bEnd">End</button>
                 <!--input type="text" id="end" name="end" /-->
                 <button class="btn btn-danger" id="bClearEnd">
-                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20" width="1.5em"
-                         xmlns="http://www.w3.org/2000/svg">
-                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                        <path clip-rule="evenodd"
-                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
-                              fill-rule="evenodd"/>
-                    </svg>
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
+            <button class="btn btn-primary" id="addWaypoint" data-i18n="message-add-waypoint">Add waypoint
+            </button>
+
             <div aria-label="Clear tiles" class="btn-group" id="run-button-group" role="group">
                 <!--<button type="button" class="btn btn-success" id="route">Chercher</button>-->
                 <button class="btn btn-warning" data-i18n="message-clear-tiles-button" id="clear-tiles"
@@ -182,11 +169,7 @@
 
             <div class="alert alert-light" id="progress-message">
                 <button class="btn btn-primary" id="button-download-route">
-                    <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round"
-                         stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
-                         xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30"/>
-                    </svg>
+                    <i class="fas fa-cloud-download-alt"></i>
                 </button>
                 <div id="spinner-searching" class="spinner-border spinner-border-sm text-primary" role="status" style="display:none;">
                     <span class="sr-only">Searching...</span>
@@ -207,16 +190,7 @@
                     <input id="traceName" class="form-control col-sm-6 config-storage" name="traceName" type="text"/>
                     <div class="col-sm-2">
                         <button class="btn btn-primary" id="addTrace" type="button">
-                            <svg fill="none" height="1em" id="i-merge" stroke="currentcolor" stroke-linecap="round"
-                                 stroke-linejoin="round" stroke-width="2" viewBox="0 0 20 20" width="1em"
-                                 xmlns="http://www.w3.org/2000/svg">
-                                <path clip-rule="evenodd"
-                                      d="M10 5.5a.5.5 0 01.5.5v4a.5.5 0 01-.5.5H6a.5.5 0 010-1h3.5V6a.5.5 0 01.5-.5z"
-                                      fill-rule="evenodd"/>
-                                <path clip-rule="evenodd"
-                                      d="M9.5 10a.5.5 0 01.5-.5h4a.5.5 0 010 1h-3.5V14a.5.5 0 01-1 0v-4z"
-                                      fill-rule="evenodd"/>
-                            </svg>
+                            <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
@@ -234,35 +208,16 @@
                     <div aria-label="menu" class="btn-group" id="trace-button-group" role="group">
 
                         <button class="btn btn-outline-info action_on_trace" id="rename-trace" type="button" title="rename" data-i18n="[title]msg-button-rename">
-                            <svg class="bi bi-type" width="1em" height="1em" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M4.244 15.081l.944-2.803H8.66l.944 2.803h1.257L7.54 5.75H6.322L3 15.081h1.244zm2.7-7.923l1.395 4.157h-2.83L6.91 7.158h.034zm9.146 7.027h.035v.896h1.128v-4.956c0-1.51-1.114-2.345-2.646-2.345-1.736 0-2.59.916-2.666 2.174h1.108c.068-.718.595-1.19 1.517-1.19.971 0 1.518.52 1.518 1.463v.732H14.19c-1.647.007-2.522.8-2.522 2.058 0 1.319.957 2.18 2.345 2.18 1.06 0 1.716-.43 2.078-1.011zm-1.763.035c-.752 0-1.456-.397-1.456-1.244 0-.65.424-1.115 1.408-1.115h1.805v.834c0 .896-.752 1.525-1.757 1.525z"/>
-                            </svg>
+                            <i class="fas fa-font"></i>
                         </button>
                         <button class="btn btn-outline-info action_on_trace" id="togpx-trace" type="button" title="download" data-i18n="[title]msg-button-download">
-                            <svg fill="none" height="1em" id="i-download" stroke="currentcolor" stroke-linecap="round"
-                                 stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
-                                 xmlns="http://www.w3.org/2000/svg">
-                                <path d="M9 22 C0 23 1 12 9 13 6 2 23 2 22 10 32 7 32 23 23 22 M11 26 L16 30 21 26 M16 16 L16 30"/>
-                            </svg>
+                            <i class="fas fa-cloud-download-alt"></i>
                         </button>
                         <button class="btn btn-outline-info action_on_trace" id="merge-trace" type="button" title="merge" data-i18n="[title]msg-button-merge">
-                            <svg fill="none" height="1em" id="i-merge" stroke="currentcolor" stroke-linecap="round"
-                                 stroke-linejoin="round" stroke-width="2" viewBox="0 0 20 20" width="1em"
-                                 xmlns="http://www.w3.org/2000/svg">
-                                <path clip-rule="evenodd"
-                                      d="M10 5.5a.5.5 0 01.5.5v4a.5.5 0 01-.5.5H6a.5.5 0 010-1h3.5V6a.5.5 0 01.5-.5z"
-                                      fill-rule="evenodd"/>
-                                <path clip-rule="evenodd"
-                                      d="M9.5 10a.5.5 0 01.5-.5h4a.5.5 0 010 1h-3.5V14a.5.5 0 01-1 0v-4z"
-                                      fill-rule="evenodd"/>
-                            </svg>
+                            <i class="fas fa-plus"></i>
                         </button>
                         <button class="btn btn-outline-danger action_on_trace" id="remove-trace" type="button" title="delate" data-i18n="[title]msg-button-delete">
-                            <svg fill="none" height="1em" id="i-trash" stroke="currentcolor" stroke-linecap="round"
-                                 stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="1em"
-                                 xmlns="http://www.w3.org/2000/svg">
-                                <path d="M28 6 L6 6 8 30 24 30 26 6 4 6 M16 12 L16 24 M21 12 L20 24 M11 12 L12 24 M12 6 L13 2 19 2 20 6"/>
-                            </svg>
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
                 </span>
@@ -291,13 +246,7 @@
                 <button class="btn btn-primary" id="bImportStatsHunters"
                         data-i18n="msg-import-statshunters"></button>
                 <button class="btn btn-outline-danger" id="bImportStatsHuntersReset">
-                    <svg class="bi bi-trash" fill="currentColor" height="1.5em" viewBox="0 0 20 20"
-                         width="1.5em" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M7.5 7.5A.5.5 0 018 8v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V8a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V8z"/>
-                        <path clip-rule="evenodd"
-                              d="M16.5 5a1 1 0 01-1 1H15v9a2 2 0 01-2 2H7a2 2 0 01-2-2V6h-.5a1 1 0 01-1-1V4a1 1 0 011-1H8a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM6.118 6L6 6.059V15a1 1 0 001 1h6a1 1 0 001-1V6.059L13.882 6H6.118zM4.5 5V4h11v1h-11z"
-                              fill-rule="evenodd"/>
-                    </svg>
+                    <i class="fas fa-trash-alt"></i>
                 </button>
                 <div>
                     <span data-i18n="msg-import-statshunters-filter-message">Filter to apply on activities</span>

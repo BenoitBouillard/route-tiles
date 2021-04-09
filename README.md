@@ -100,6 +100,7 @@ To find a route, several information are mandatory or possible:
 - displacement mode
 - start/end position
 - tiles to visit
+- waypoints to go
 
 When there is enough information, a route request will be send to the server
 after a few seconds.
@@ -152,6 +153,18 @@ on the right of the button.
 It is also possible to inverse start and end position with the icon 
 with the double arrows between start and stop button.
 
+#### Waypoints to go
+
+You can add one or several waypoints that the route must go.
+
+To add a waypoint, select "Add waypoint" button and then, click on the map. 
+The waypoint should appear on the map by a cyan marker.
+
+You can move a waypoint directly on the map by dragging it.
+
+To remove a waypoint, just click on it.
+
+
 #### Tiles to visit
 
 On the map, you can select tiles to visit, just by clicking on it. Same to
@@ -165,7 +178,7 @@ unselect a tile.
 - Don't add trivial tiles
 - Split your route is several ones by defining intermediate points and join then with merge function
 
-You can remove all marked tiles with "Clear tiles" button.
+You can remove all marked tiles with "Clear tiles" button. It will also remove all waypoints.
 
 #### Download route
 
@@ -218,7 +231,7 @@ Some examples:
 
 - [ ] [Improvement] Add CANCEL to merge
 - [ ] [Improvement] Add Elevation
-- [ ] [Improvement] Add description to buttons
+- [X] [Improvement] Add description to buttons
 - [ ] [Improvement] Add a way to reload tiles data (in case of data evolution on OSM server)
 - [X] [Bug] Session management has no timeout
 - [ ] [Improvement] Route management (multiple segments with tiles)
@@ -235,3 +248,5 @@ Some examples:
 - [X] [Improvement] Use tiles from statshunters.com
 - [X] [Improvement] Add filter on saved traces
 - [X] [Improvement] Display max square and cluster
+- [X] [Improvement] Add circle
+- [X] [Improvement] Add waypoints

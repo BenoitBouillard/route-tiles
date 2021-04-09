@@ -18,6 +18,7 @@
   "message-state-ask-route": "Ask for route...",
   "message-state-wait": "Wait...",
   "message-state-fail": "FAIL",
+  "message-add-waypoint": "Add waypoint",
   "msg-error_1": "No entry point for the tile",
   "msg-error_2": "Abort request",
   "msg-error_1000": "Other error",

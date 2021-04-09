@@ -46,6 +46,18 @@ class Coord(object):
     def __repr__(self):
         return "{},{}({})".format(self.lat, self.lon, self.nodeId)
 
+    @property
+    def edges(self):
+        return [self.latlon]
+
+    @property
+    def entryNodeId(self):
+        return [self]
+
+    @property
+    def entry_nodes_id(self):
+        return [self.nodeId]
+
 
 class CoordDict(object):
     def __init__(self, router):
