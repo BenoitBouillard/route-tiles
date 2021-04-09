@@ -281,7 +281,7 @@ $(document).ready(function(){
                 });
             });
 
-            $('input[type="text"].config-storage').each(function(){
+            $('input[type="text"].config-storage,input[type="number"].config-storage').each(function(){
                 let id = this.id;
                 $(this).val(localStorage.getItem(id) || "");
 
@@ -500,7 +500,7 @@ $(document).ready(function(){
          }),
           end: L.ExtraMarkers.icon({
              icon: 'fa-stop-circle',
-             markerColor: 'red',
+             markerColor: 'orange-dark',
              shape: 'circle',
              prefix: 'fas'
          }),
@@ -594,21 +594,21 @@ $(document).ready(function(){
 
         function update_circle() {
             if (circle_layer) {
-                if (($('#draw-circle').find(':selected').data('value')>0) && ("start" in markers))
+                if (($('#is-draw-circle').is(":checked")) && ("start" in markers))
                 {
-                    circle_layer.setRadius($('#draw-circle').find(':selected').data('value'));
+                    circle_layer.setRadius(1000*parseInt($('#circle-size').val()));
                     circle_layer.setLatLng(markers["start"].getLatLng());
                 } else {
                     circle_layer.remove();
                     circle_layer = false;
 
                 }
-            } else if (($('#draw-circle').find(':selected').data('value')>0) && ("start" in markers)) {
-                circle_layer = L.circle(markers["start"].getLatLng(), {radius: $('#draw-circle').find(':selected').data('value'), fill: false}).addTo(mymap);
+            } else if (($('#is-draw-circle').is(":checked")) && ("start" in markers)) {
+                circle_layer = L.circle(markers["start"].getLatLng(), {radius: 1000*parseInt($('#circle-size').val()), fill: false}).addTo(mymap);
             }
         }
 
-        $('#draw-circle').on("change", function() {
+        $('#is-draw-circle,#circle-size').on("change", function() {
             update_circle();
         })
 
