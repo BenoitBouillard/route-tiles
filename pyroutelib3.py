@@ -103,6 +103,13 @@ TYPES = {
                     "bridleway": 0.9, "footway": 0.9, "path": 1, "steps": 1, "cycleway": 0.85},
         "access": ["access", "foot"],
         "transport": "foot"
+    },
+    "trail2": {
+        "weights": {"trunk": 0.1, "primary": 0.1, "secondary": 0.1, "tertiary": 0.1, "service": 0.1,
+                    "unclassified": 0.1, "residential": 0.1, "living_street": 0.1, "track": 1.0,
+                    "bridleway": 0.9, "footway": 1.0, "path": 1, "steps": 1, "cycleway": 0.9},
+        "access": ["access", "foot"],
+        "transport": "foot"
     }
 }
 

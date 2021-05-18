@@ -1,3 +1,34 @@
+// Warn if overriding existing method
+if(Array.prototype.equals)
+    console.warn("Overriding existing Array.prototype.equals. Possible causes: New API defines the method, there's a framework conflict or you've got double inclusions in your code.");
+// attach the .equals method to Array's prototype to call it on any array
+Array.prototype.equals = function (array) {
+    // if the other array is a falsy value, return
+    if (!array)
+        return false;
+
+    // compare lengths - can save a lot of time
+    if (this.length != array.length)
+        return false;
+
+    for (var i = 0, l=this.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (this[i] instanceof Array && array[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!this[i].equals(array[i]))
+                return false;
+        }
+        else if (this[i] != array[i]) {
+            // Warning - two different object instances will never be equal: {x:20} != {x:20}
+            return false;
+        }
+    }
+    return true;
+}
+// Hide method from for-in loops
+Object.defineProperty(Array.prototype, "equals", {enumerable: false});
+
+
 $(document).ready(function(){
 
     // Add collapse indicator for sections
@@ -175,6 +206,7 @@ $(document).ready(function(){
         mymap.on("load", updateMapTiles);
 
         mymap.on("click", function(e) {
+            if (!$('#alert-split').hasClass("d-none")) return;
             if (selectLoc!=false) return;
             if (mymap.getZoom()>=10) {
                 let tile_id = TileIdFromLatLng(e.latlng)
@@ -365,7 +397,7 @@ $(document).ready(function(){
                 timeoutID = false;
             }
             if (!('start' in markers)) return;
-            if (!('end' in markers) && selected_tiles.length==0) return;
+            if (!('end' in markers) && selected_tiles.length==0 && waypoints.length==0) return;
             setMessageAlert('info');
             $("#button-download-route").hide();
             $("#message").text($.i18n("message-state-wait"));
@@ -594,7 +626,7 @@ $(document).ready(function(){
 
         function update_circle() {
             if (circle_layer) {
-                if (($('#is-draw-circle').is(":checked")) && ("start" in markers))
+                if (($('#is-draw-circle').is(":checked")) && ("start" in markers) && (!isNaN(parseInt($('#circle-size')))))
                 {
                     circle_layer.setRadius(1000*parseInt($('#circle-size').val()));
                     circle_layer.setLatLng(markers["start"].getLatLng());
@@ -603,7 +635,7 @@ $(document).ready(function(){
                     circle_layer = false;
 
                 }
-            } else if (($('#is-draw-circle').is(":checked")) && ("start" in markers)) {
+            } else if (($('#is-draw-circle').is(":checked")) && ("start" in markers) && (!isNaN(parseInt($('#circle-size'))))) {
                 circle_layer = L.circle(markers["start"].getLatLng(), {radius: 1000*parseInt($('#circle-size').val()), fill: false}).addTo(mymap);
             }
         }
@@ -700,24 +732,61 @@ $(document).ready(function(){
                 const regex = new RegExp(filter);
                 traces.forEach(function(trace) {
                     if (regex.test(trace.name)) {
-                        trace.hmi.show();
-                        trace.polyline.setStyle({color:'green'})
+                        if (trace.hmi.is(":hidden")) {
+                            trace.hmi.show();
+                            trace.polyline.setStyle({color:'green'})
+                        }
                     } else {
-                        trace.hmi.hide();
-                        trace.polyline.setStyle({color:'rgba(0,0,0,0)'})
+                        if (trace.hmi.is(":visible")) {
+                            if (trace.hmi.hasClass("active")) {
+                                trace.hmi.removeClass("active");
+                                $('.action_on_trace').prop("disabled", true);
+                            }
+                            trace.hmi.hide();
+                            trace.polyline.setStyle({color:'rgba(0,0,0,0)'})
+                        }
                     }
                 })
             }
 
+            var undo_list = []
+            $('#button-undo').prop("disabled", true);
+
             function refresh_localstorage_traces() {
-                localStorage.setItem("traces", JSON.stringify(traces, ['name', 'distance', 'route']))
+                if (undo_list.push(localStorage.getItem("traces"))>10) {
+                   undo_list.shift();
+                }
+                $('#button-undo').prop("disabled", false);
+
+                localStorage.setItem("traces", JSON.stringify(traces, ['name', 'distance', 'route']));
             }
 
-            { // ROUTES localStorage
-                function gen_trace_hmi(trace) {
-                    trace.hmi = $('<a href="#" class="list-group-item list-group-item-action"><span>'+trace.name+'</span><span class="badge badge-light" style="float:right;">'+trace.distance.toFixed(2)+' km</span></a>')
-                    return trace.hmi
+            $('#button-undo').on('click', function() {
+                undo_traces = undo_list.pop();
+                if (undo_list.length==0) {
+                    $('#button-undo').prop("disabled", true);
                 }
+                localStorage.setItem("traces", undo_traces);
+                load_localStorage_traces();
+            });
+
+            function gen_trace_hmi(trace) {
+                trace.hmi = $('<a href="#" class="list-group-item list-group-item-action"><span>'+trace.name+'</span><span class="badge badge-light" style="float:right;">'+trace.distance.toFixed(2)+' km</span></a>')
+                return trace.hmi
+            }
+
+            function update_trace(trace) {
+                trace.hmi.find('span.badge').text(trace.distance.toFixed(2)+" km")
+                trace.polyline.setLatLngs(trace.route);
+            }
+
+
+            function load_localStorage_traces() { // ROUTES localStorage
+                // Clean
+                traces.forEach(function(trace) {
+                    trace.polyline.remove();
+                });
+                $("#traces-list").empty();
 
                 traces = JSON.parse(localStorage.getItem("traces")) || []
                 // Compatibility
@@ -744,12 +813,14 @@ $(document).ready(function(){
                     gen_trace_hmi(trace).appendTo('#traces-list')
                     trace.polyline = L.polyline(trace.route, {color: 'green', opacity:0.8}).addTo(mymap);
                 });
+                filter_traces();
             }
+
+            load_localStorage_traces();
 
             $('#filter-activated,input#filterField').on("change", function(e) {
                 filter_traces();
             })
-            filter_traces();
 
             $('button#addTrace').on("click", function(e) {
                 if ($('#show-tiles').is(':checked')) {
@@ -776,66 +847,188 @@ $(document).ready(function(){
             });
 
             $('button#addTrace').prop("disabled", true);
+            $('.action_on_trace').prop("disabled", true);
 
             $('div#traces-list').on('click', 'a', function(e) {
+                if ($('.alert-dismissible:not(.d-none)').length > 0) return
                 e.preventDefault();
+
                 let previous_pos = $('div#traces-list>.active').index();
                 let pos = $(this).index();
-                if ($('#merge-trace').hasClass('btn-primary')) {
-                    if (pos == previous_pos) {
-                        //saved_traces[previous_pos].setStyle({color:'green'});
-                        traces[previous_pos].polyline.setStyle({color:'green'});
-                        $('div#traces-list>.active').removeClass('active');
-                        $('#merge-trace').removeClass('btn-primary');
-                    } else {
-                        traces[previous_pos].route.push(...traces[pos].route)
-                        traces[previous_pos].distance = traces[previous_pos].distance + traces[pos].distance
-                        $('div#traces-list>.active>span.badge').text(traces[previous_pos].distance.toFixed(2)+" km")
-                        traces[previous_pos].polyline.remove()
-                        traces[pos].polyline.remove()
-                        traces[previous_pos].polyline = L.polyline(traces[previous_pos].route, {color: 'blue', opacity:0.8}).addTo(mymap);
-                        traces.splice(pos, 1);
-                        $(this).remove();
-                        refresh_localstorage_traces();
-                        $('#merge-trace').removeClass('btn-primary');
-                    }
-                } else {
-                    if (previous_pos>=0) {
-                        traces[previous_pos].polyline.setStyle({color:'green'});
-                        $('#trace-button-group').appendTo('#trace-menu-container')
-                        $('div#traces-list>.active').removeClass('active').popover('dispose');
-                    }
-                    if (pos != previous_pos) {
-                        $(this).addClass('active').popover({
-                            html: true,
-                            content:$('#trace-button-group'),
-                            trigger:"manual",
-                            placement: "top",
-                        }).popover('show');
-                        //saved_traces[pos].setStyle({color:'blue'}).bringToFront();
-                        traces[pos].polyline.setStyle({color:'blue'}).bringToFront();
-                    }
+                if (previous_pos>=0) {
+                    traces[previous_pos].polyline.setStyle({color:'green'});
+                    $('div#traces-list>.active').removeClass('active');
+                    $('.action_on_trace').prop("disabled", true);
+                }
+                if (pos != previous_pos) {
+                    $(this).addClass('active');
+                    traces[pos].polyline.setStyle({color:'blue'}).bringToFront();
+                    $('.action_on_trace').prop("disabled", false);
                 }
             });
+
+
 
             $('#remove-trace').on('click', function(e) {
                 let pos = $('div#traces-list>.active').index();
                 if (pos>=0) {
-                    $('#trace-button-group').appendTo('#trace-menu-container');
                     traces[pos].polyline.remove();
                     traces.splice(pos, 1);
                     $('div#traces-list>.active').remove();
                     refresh_localstorage_traces();
+                    $('.action_on_trace').prop("disabled", true);
                 }
             });
 
-            $('#merge-trace').on('click', function(e) {
-                if ($(this).hasClass('btn-primary')) {
-                    $(this).removeClass('btn-primary');
-                } else {
-                    $(this).addClass('btn-primary');
+            $('#duplicate-trace').on('click', function(e) {
+                let pos = $('div#traces-list>.active').index();
+                if (pos>=0) {
+                    const selTrace = traces[pos]
+                    var newTrace =  {name: selTrace.name, distance: selTrace.distance, route: selTrace.route};
+                    gen_trace_hmi(newTrace).appendTo('#traces-list')
+                    newTrace.polyline = L.polyline(newTrace.route, {color: 'green', opacity:0.8}).addTo(mymap);
+                    traces.push(newTrace)
+                    refresh_localstorage_traces();
                 }
             });
+
+            $('div#traces-list').on("mouseenter", 'a.active', function() {
+                $('div#traces-list>.active').popover('show');
+            }).on( "mouseleave", 'a.active', function() {
+                setTimeout(function() {
+                  if (!$(".popover:hover").length) {
+                    $('div#traces-list>.active').popover('hide');
+                  }
+                }, 300);
+            });
+
+            $('.alert-dismissible button.close').on('click', function(e) {
+                $(this).parent('.alert-dismissible').addClass("d-none");
+            });
+
+            // MERGE
+
+            $('#merge-trace').on('click', function(e) {
+                $('#alert-merge').removeClass("d-none");
+            });
+
+            $('div#traces-list').on('click', 'a', function(e) {
+                let previous_pos = $('div#traces-list>.active').index();
+                let pos = $(this).index();
+                if (!$('#alert-merge').hasClass('d-none')) {
+                    e.preventDefault();
+                    if (pos != previous_pos) {
+                        traces[previous_pos].route.push(...traces[pos].route)
+                        traces[previous_pos].distance = traces[previous_pos].distance + traces[pos].distance
+                        //traces[previous_pos].polyline.remove()
+                        traces.splice(pos, 1);
+                        $(this).remove();
+                        update_trace(traces[previous_pos]);
+                        refresh_localstorage_traces();
+                    }
+                    $('#alert-merge').addClass('d-none');
+                }
+            });
+
+            $('#progress-message').on('click', function(e) {
+                if (!$('#alert-merge').hasClass("d-none")) {
+                    var trace = traces[$('div#traces-list>.active').index()]
+                    trace.route.push(...actualTrace.route)
+                    trace.distance += actualTrace.distance
+                    update_trace(trace);
+                    refresh_localstorage_traces();
+                    $('#alert-merge').addClass("d-none");
+                }
+            });
+
+
+            // INSERT
+
+            $('#insert-trace').on('click', function(e) {
+                $('#alert-insert').removeClass("d-none");
+            });
+
+            function insert_trace(trace1, trace2) {
+                const pos_start = trace1.route.findIndex((elt) => elt.equals(trace2.route[0]))
+                const pos_end = trace1.route.findIndex((elt) => elt.equals(trace2.route[trace2.route.length - 1]), pos_start)
+                if ((pos_start == -1) || ( pos_end== -1))  return false
+                const rm_part = trace1.route.slice(pos_start, pos_end)
+                trace1.route = trace1.route.slice(0, pos_start).concat(trace2.route).concat(trace1.route.slice(pos_end))
+                trace1.distance += trace2.distance - compute_distance(rm_part)
+                return true
+            }
+
+            $('div#traces-list').on('click', 'a', function(e) {
+                let previous_pos = $('div#traces-list>.active').index();
+                let pos = $(this).index();
+                if (!$('#alert-insert').hasClass('d-none')) {
+                    e.preventDefault();
+                    if (pos != previous_pos) {
+                        if (insert_trace(traces[previous_pos], traces[pos])) {
+                            traces[pos].polyline.remove();
+                            traces[pos].hmi.remove();
+                            traces.splice(pos, 1);
+                            update_trace(traces[previous_pos]);
+                            refresh_localstorage_traces();
+                        }
+                    }
+                    $('#alert-insert').addClass('d-none');
+                }
+            });
+
+            $('#progress-message').on('click', function(e) {
+                if (!$('#alert-insert').hasClass("d-none")) {
+                    var trace = traces[$('div#traces-list>.active').index()]
+                    if (insert_trace(trace, actualTrace)) {
+                        update_trace(trace);
+                        refresh_localstorage_traces();
+                    }
+                    $('#alert-insert').addClass("d-none");
+                }
+            });
+
+
+            // SPLIT
+
+            $('#split-trace').on('click', function(e) {
+                $('#alert-split').removeClass("d-none");
+            });
+
+            mymap.on("click", function (e) {
+                if ($('#alert-split').hasClass("d-none")) return;
+                var trace = traces[$('div#traces-list>.active').index()]
+                let pos_index = 0
+                let pos_latlng = false
+                let pos_dist = -1
+                trace.polyline.getLatLngs().forEach(function(elt, index) {
+                    if ((index==0) || (mymap.distance(e.latlng, elt) < pos_dist)) {
+                        pos_index = index
+                        pos_latlng = elt
+                        pos_dist = mymap.distance(e.latlng, elt)
+                    }
+                })
+                if (pos_dist<100) {
+                    let coords = trace.route.slice(pos_index)
+                    let dist = compute_distance(coords)
+                    let new_trace = {name: trace.name + ' ⍆', distance: dist, route: coords}
+                    gen_trace_hmi(new_trace).appendTo('#traces-list')
+                    new_trace.polyline = L.polyline(new_trace.route, {color: 'green', opacity:0.8}).addTo(mymap);
+                    traces.push(new_trace)
+
+                    trace.route = trace.route.slice(0, pos_index+1)
+                    trace.distance = compute_distance(trace.route)
+                    update_trace(trace)
+                    refresh_localstorage_traces();
+                }
+
+                $('#alert-split').addClass("d-none")
+            });
+
+            function compute_distance(route) {
+                return route.slice(0, route.length-1).map((e,i) => [e, route[i+1]])
+                       .map(elt => mymap.distance(elt[0], elt[1]))
+                       .reduce((a,b)=>a+b, 0) / 1000.0
+            }
 
             $('#rename-trace').on('click', function(e) {
                 let name = $('div#traces-list>.active>span:first').text();

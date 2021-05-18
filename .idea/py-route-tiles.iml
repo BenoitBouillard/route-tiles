@@ -5,10 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/static/gpx" />
       <excludeFolder url="file://$MODULE_DIR$/static/icons" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3.9 (3)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-  </component>
-  <component name="TestRunnerService">
-    <option name="PROJECT_TEST_RUNNER" value="Unittests" />
   </component>
 </module>

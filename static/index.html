@@ -159,13 +159,16 @@
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
-            <button class="btn btn-primary" id="addWaypoint" data-i18n="message-add-waypoint">Add waypoint
+            <button class="btn btn-primary" id="addWaypoint">
+                <i class="fas fa-plus"></i>
+                <i class="fas fa-map-marker-alt"></i>
             </button>
 
             <div aria-label="Clear tiles" class="btn-group" id="run-button-group" role="group">
                 <!--<button type="button" class="btn btn-success" id="route">Chercher</button>-->
-                <button class="btn btn-warning" data-i18n="message-clear-tiles-button" id="clear-tiles"
-                        type="button">Clear tiles
+                <button class="btn btn-warning" id="clear-tiles"
+                        type="button"><span data-i18n="message-clear-tiles-button">Clear tiles</span>
+                    & <i class="fas fa-map-marker-alt"></i>
                 </button>
                 <!--<button type="button" class="btn btn-info" id="export-tiles">Exporter les carrés en KML</button>-->
             </div>
@@ -188,7 +191,8 @@
                 test
             </div>
 
-            <h3 aria-expanded="true" data-target="#section-routes" data-toggle="collapse"><span data-i18n="msg-section-routes">Routes</span></h3>
+            <h3 aria-expanded="true" data-target="#section-routes" data-toggle="collapse"><span data-i18n="msg-section-routes">Routes</span>
+            </h3>
 
             <div class="collapse show" id="section-routes">
                 <div class="form-group row">
@@ -208,26 +212,46 @@
                         <label class="custom-control-label" for="filter-activated" data-i18n="msg-input-filter">Filter</label>
                     </div>
                     <input id="filterField" class="form-control col-sm-6 config-storage" name="filterField" type="text"/>
+
+                    <div class="dropdown">
+                      <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Menu
+                      </button>
+                      <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <button id="rename-trace"    class="dropdown-item action_on_trace"><i class="fas fa-font" style="width:3ex;"              ></i>&nbsp;<span data-i18n="msg-button-rename"   >Rename</span></button>
+                        <button id="togpx-trace"     class="dropdown-item action_on_trace"><i class="fas fa-cloud-download-alt" style="width:3ex;"></i>&nbsp;<span data-i18n="msg-button-download" >Download</span></button>
+                        <button id="duplicate-trace" class="dropdown-item action_on_trace"><i class="fas fa-copy"        style="width:3ex;"       ></i>&nbsp;<span data-i18n="msg-button-duplicate">Duplicate</span></button>
+                        <button id="remove-trace"    class="dropdown-item action_on_trace"><i class="fas fa-trash-alt"   style="width:3ex;"       ></i>&nbsp;<span data-i18n="msg-button-delete"   >Delete</span></button>
+                        <div class="dropdown-divider"></div>
+                        <button id="merge-trace"     class="dropdown-item action_on_trace"><i class="fas fa-plus"   style="width:3ex;"            ></i>&nbsp;<span data-i18n="msg-button-merge"    >Merge</span></button>
+                        <button id="insert-trace"    class="dropdown-item action_on_trace"><i class="fas fa-code-branch"  style="width:3ex;"      ></i>&nbsp;<span data-i18n="msg-button-insert"   >Insert</span></button>
+                        <button id="split-trace"     class="dropdown-item action_on_trace"><i class="fas fa-cut"  style="width:3ex;"       ></i>&nbsp;<span data-i18n="msg-button-split"   >Split</span></button>
+                        <div class="dropdown-divider"></div>
+                        <button id="button-undo"     class="dropdown-item"                ><i class="fas fa-undo"       style="width:3ex;"        ></i>&nbsp;<span data-i18n="msg-button-undo"     >Undo</span></button>
+                      </div>
+                    </div>
                 </div>
 
-                <span id="trace-menu-container" hidden>
-                    <div aria-label="menu" class="btn-group" id="trace-button-group" role="group">
+                <div class="alert alert-info alert-dismissible fade show d-none" role="alert" id="alert-merge">
+                  <strong>Merge action</strong><br/> Select the next trace to merge with
+                  <button type="button" class="close" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
 
-                        <button class="btn btn-outline-info action_on_trace" id="rename-trace" type="button" title="rename" data-i18n="[title]msg-button-rename">
-                            <i class="fas fa-font"></i>
-                        </button>
-                        <button class="btn btn-outline-info action_on_trace" id="togpx-trace" type="button" title="download" data-i18n="[title]msg-button-download">
-                            <i class="fas fa-cloud-download-alt"></i>
-                        </button>
-                        <button class="btn btn-outline-info action_on_trace" id="merge-trace" type="button" title="merge" data-i18n="[title]msg-button-merge">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                        <button class="btn btn-outline-danger action_on_trace" id="remove-trace" type="button" title="delate" data-i18n="[title]msg-button-delete">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </span>
+                <div class="alert alert-info alert-dismissible fade show d-none" role="alert" id="alert-insert">
+                  <strong>Insert action</strong><br/> Select the next trace to insert in
+                  <button type="button" class="close" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
 
+                <div class="alert alert-info alert-dismissible fade show d-none" role="alert" id="alert-split">
+                  <strong>Split action</strong><br/> Click on map on split point
+                  <button type="button" class="close" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
 
                 <div class="list-group" id="traces-list">
                 </div>

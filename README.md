@@ -190,19 +190,31 @@ Name is optional. If none, datetime will be use for the file name and gpx name.
 #### Manage route
 
 It is also possible to store several routes in the "Routes" section.
-Give a name and click on "Add" button.
+Give a name and click on "+" button.
 Then you can highlight previous route, rename, remove or download them.
 
-It is possible also to merge routes with the "+" button:
+You can also perform some operation on route with the action menu:
 
-1. select the first route
-1. select thee "+" button (it will highlight it)
-1. select the second route to add.
-   It will add the second route to the first one and remove the second.
+Actions on selected route:
+- Rename selected route
+- Download selected route
+- Duplicate selected route (the new route will be added on the end)
+- Remove selected route
+- Merge the selected route with the next selected one
+- Replace section of seleted route with the next selected one (Start and end of next route must be on the selecte one)
+- Split the route by clicking on the map
+- Cancel last action: you can cancel up to 10 actions
+
+**Tips**: You can perform merge and replace with the finded route by clicking the green status instead of next route.
    
 #### Filter displayed routes
-It is possible to activate filter for routes.
-- `^((?!-SW|-SE|-NE|-NW|Vélo).)*$`
+It is possible to activate filter for displayed routes. 
+
+Filter is a regex expression that will check route name.
+
+Some example:
+- `^Vélo`: Route started by "Vélo"
+- `[0-9]$`: Route finised by a number
 
 #### Missing tiles import
 It is possible to display missing tiles on the map to facilitate the tiles selection for a route.
@@ -229,7 +241,7 @@ Some examples:
 
 ## TODO list
 
-- [ ] [Improvement] Add CANCEL to merge
+- [X] [Improvement] Add CANCEL to merge => Undo up to 10 actions
 - [ ] [Improvement] Add Elevation
 - [X] [Improvement] Add description to buttons
 - [ ] [Improvement] Add a way to reload tiles data (in case of data evolution on OSM server)
@@ -250,3 +262,7 @@ Some examples:
 - [X] [Improvement] Display max square and cluster
 - [X] [Improvement] Add circle
 - [X] [Improvement] Add waypoints
+- [X] [Bug] Filter selected trace could be stay displayed
+- [X] [Improvement] Add insertion of route on an other
+- [X] [Improvement] Add split route
+- [X] [Imrpovement] Rework menu actions
